@@ -375,7 +375,7 @@ function StayDatePicker({
   onSubmit,
 }: {
   disabled: boolean;
-  onSubmit: (checkIn: Date, checkOut: Date) => void;
+  onSubmit: (checkIn: Date, checkOut: Date, guestCount: number) => void;
 }) {
   const [today] = useState(() => startOfDay(new Date()));
   const [visibleMonth, setVisibleMonth] = useState(
@@ -383,6 +383,7 @@ function StayDatePicker({
   );
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const [guestCount, setGuestCount] = useState(0);
 
   const daysInMonth = new Date(
     visibleMonth.getFullYear(),
@@ -418,6 +419,7 @@ function StayDatePicker({
   function handleReset() {
     setCheckIn(null);
     setCheckOut(null);
+    setGuestCount(0);
     setVisibleMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   }
 
@@ -436,11 +438,39 @@ function StayDatePicker({
             {checkOut ? dateFormatterWithYear.format(checkOut) : "Select departure"}
           </strong>
         </div>
-        <div className="ci-date-picker__stay">
+        <div className="ci-date-picker__stay ci-date-picker__stay--length">
           <span className="ci-date-picker__stay-label">Stay length</span>
           <strong className="ci-date-picker__stay-value">
             {nights > 0 ? `${nights} night${nights === 1 ? "" : "s"}` : "Pick your dates"}
           </strong>
+        </div>
+        <div className="ci-date-picker__stay ci-date-picker__stay--guests">
+          <div className="ci-date-picker__guest-copy">
+            <span className="ci-date-picker__stay-label">Guest count</span>
+          </div>
+          <div className="ci-date-picker__guest-stepper" aria-label="Guest count selector">
+            <button
+              type="button"
+              className="ci-date-picker__guest-btn"
+              onClick={() => setGuestCount((prev) => Math.max(0, prev - 1))}
+              disabled={disabled || guestCount <= 0}
+              aria-label="Decrease guest count"
+            >
+              -
+            </button>
+            <span className="ci-date-picker__guest-count" aria-live="polite">
+              {guestCount}
+            </span>
+            <button
+              type="button"
+              className="ci-date-picker__guest-btn"
+              onClick={() => setGuestCount((prev) => Math.min(6, prev + 1))}
+              disabled={disabled || guestCount >= 6}
+              aria-label="Increase guest count"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
@@ -536,10 +566,10 @@ function StayDatePicker({
           type="button"
           className="ci-date-picker__submit"
           onClick={() => {
-            if (!checkIn || !checkOut) return;
-            onSubmit(checkIn, checkOut);
+            if (!checkIn || !checkOut || guestCount <= 0) return;
+            onSubmit(checkIn, checkOut, guestCount);
           }}
-          disabled={disabled || !checkIn || !checkOut}
+          disabled={disabled || !checkIn || !checkOut || guestCount <= 0}
         >
           Submit
         </button>
@@ -610,7 +640,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
 
   const shownKeysRef = useRef<Set<string>>(new Set());
 
-  const apiBase = import.meta.env.VITE_CHAT_API_BASE_URL ?? "http://localhost:8080";
+  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
   function focusComposerInput() {
     const input = inputRef.current;
@@ -649,6 +679,27 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     );
   }
 
+  function scrollPackageCard(messageKey: string, targetIndex: number) {
+    const slider = packageSliderRefs.current[messageKey];
+    if (!slider) return;
+
+    const cards = Array.from(
+      slider.querySelectorAll<HTMLElement>("[data-package-card='true']"),
+    );
+    const targetCard = cards[targetIndex];
+    if (!targetCard) return;
+
+    const targetLeft = targetCard.offsetLeft - (slider.clientWidth - targetCard.clientWidth) / 2;
+    slider.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: "smooth",
+    });
+
+    setActivePackageIndexes((prev) =>
+      prev[messageKey] === targetIndex ? prev : { ...prev, [messageKey]: targetIndex },
+    );
+  }
+
   function handlePackageSelect(messageKey: string, option: PackageCardOption) {
     if (isSending || isSessionComplete) return;
 
@@ -656,11 +707,11 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     void sendChatMessage(`I'd like to explore the ${option.packageName} package.`);
   }
 
-  function handleStayDateSubmit(checkIn: Date, checkOut: Date) {
+  function handleStayDateSubmit(checkIn: Date, checkOut: Date, guestCount: number) {
     if (isSending || isSessionComplete) return;
 
     const stayDatesMessage =
-      `My check-in date is ${formatCalendarSubmitDate(checkIn)} and my check-out date is ${formatCalendarSubmitDate(checkOut)}.`;
+      `My check-in date is ${formatCalendarSubmitDate(checkIn)}, my check-out date is ${formatCalendarSubmitDate(checkOut)}, and the guest count is ${guestCount}.`;
     void sendChatMessage(stayDatesMessage);
   }
 
@@ -702,7 +753,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     clearResponseTimeout();
     timeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      setNotice("Response is taking longer than expectedâ€¦");
+      setNotice("Response is taking longer than expected...");
       timeoutRef.current = null;
     }, RESPONSE_TIMEOUT_MS);
   }
@@ -835,7 +886,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         },
         onDisconnect: () => {
           subscribedSessionRef.current = "";
-          setNotice("Connection lost. Reconnectingâ€¦");
+          setNotice("Connection lost. Reconnecting...");
         },
         onStompError: (frame) => {
           console.error("STOMP error:", frame);
@@ -1189,9 +1240,20 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           background: rgba(255, 255, 255, 0.8);
         }
 
-        .ci-date-picker__stay {
-          grid-column: 1 / -1;
+        .ci-date-picker__stay--length {
           background: linear-gradient(135deg, rgba(250, 238, 205, 0.84) 0%, rgba(255, 255, 255, 0.92) 100%);
+        }
+
+        .ci-date-picker__stay--guests {
+          justify-content: flex-start;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .ci-date-picker__guest-copy {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
         }
 
         .ci-date-picker__field-label,
@@ -1205,6 +1267,60 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
 
         .ci-date-picker__field-value,
         .ci-date-picker__stay-value {
+          font-size: 13px;
+          font-weight: 700;
+          color: #2b2110;
+          word-break: normal;
+          overflow-wrap: normal;
+        }
+
+        .ci-date-picker__stay--guests .ci-date-picker__stay-label,
+        .ci-date-picker__stay--guests .ci-date-picker__stay-value {
+          white-space: nowrap;
+        }
+
+        .ci-date-picker__guest-stepper {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 4px;
+          border-radius: 999px;
+          border: 1px solid rgba(195, 147, 56, 0.18);
+          background: rgba(249, 241, 221, 0.76);
+          align-self: center;
+        }
+
+        .ci-date-picker__guest-btn {
+          width: 30px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.94);
+          color: #6d4f13;
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
+          transition: transform 0.16s ease, background 0.16s ease, color 0.16s ease;
+        }
+
+        .ci-date-picker__guest-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          background: linear-gradient(135deg, #f4e2bd 0%, #e9cc8d 100%);
+          color: #2a1f08;
+        }
+
+        .ci-date-picker__guest-btn:disabled {
+          opacity: 0.42;
+          cursor: not-allowed;
+        }
+
+        .ci-date-picker__guest-count {
+          min-width: 14px;
+          text-align: center;
           font-size: 13px;
           font-weight: 700;
           color: #2b2110;
@@ -1425,16 +1541,23 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           scroll-padding-inline: 16%;
           padding: 8px 16% 12px 4px;
           scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          cursor: grab;
         }
 
         .ci-package-slider::-webkit-scrollbar {
           display: none;
         }
 
+        .ci-package-slider:active {
+          cursor: grabbing;
+        }
+
         .ci-package-card {
           min-width: 74%;
           margin-right: -8%;
           scroll-snap-align: center;
+          scroll-snap-stop: always;
           overflow: hidden;
           border-radius: 20px;
           border: 1px solid rgba(219, 225, 232, 0.9);
@@ -1446,6 +1569,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           transition: transform 0.24s ease, opacity 0.24s ease, box-shadow 0.24s ease;
           position: relative;
           z-index: 1;
+          cursor: pointer;
         }
 
         .ci-package-card:last-child {
@@ -1588,6 +1712,35 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
 
         .ci-package-card__select--selected {
           background: linear-gradient(180deg, #f0d28a 0%, #d0a34a 100%);
+        }
+
+        .ci-package-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 0 14px 8px;
+        }
+
+        .ci-package-pagination__dot {
+          width: 10px;
+          height: 10px;
+          border: none;
+          border-radius: 999px;
+          background: rgba(195, 147, 56, 0.22);
+          cursor: pointer;
+          transition: transform 0.18s ease, background 0.18s ease, width 0.18s ease;
+        }
+
+        .ci-package-pagination__dot:hover:not(:disabled) {
+          transform: translateY(-1px);
+          background: rgba(195, 147, 56, 0.42);
+        }
+
+        .ci-package-pagination__dot--active {
+          width: 24px;
+          background: linear-gradient(135deg, #f4e2bd 0%, #dca73d 100%);
+          box-shadow: 0 8px 16px rgba(195, 147, 56, 0.2);
         }
 
         .ci-booking-card {
@@ -1893,6 +2046,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           .ci-booking-card__meta,
           .ci-booking-card__pricing { grid-template-columns: 1fr; }
           .ci-date-picker__summary { grid-template-columns: 1fr; }
+          .ci-date-picker__stay--guests .ci-date-picker__stay-label,
+          .ci-date-picker__stay--guests .ci-date-picker__stay-value {
+            white-space: normal;
+          }
           .ci-date-picker__actions { flex-direction: column-reverse; align-items: stretch; }
           .ci-date-picker__reset,
           .ci-date-picker__submit { width: 100%; }
@@ -2038,6 +2195,15 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                                   key={option.packageId}
                                   className={`ci-package-card${isActive ? " ci-package-card--active" : ""}`}
                                   data-package-card="true"
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label={`View ${option.packageName}`}
+                                  onClick={() => scrollPackageCard(msg.key, optionIndex)}
+                                  onKeyDown={(event) => {
+                                    if (event.key !== "Enter" && event.key !== " ") return;
+                                    event.preventDefault();
+                                    scrollPackageCard(msg.key, optionIndex);
+                                  }}
                                 >
                                   <div className="ci-package-card__image">
                                     {option.imageUrl ? (
@@ -2085,7 +2251,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                                       <button
                                         type="button"
                                         className={`ci-package-card__select${isSelected ? " ci-package-card__select--selected" : ""}`}
-                                        onClick={() => handlePackageSelect(msg.key, option)}
+                                        onClick={(event) => {
+                                          event.stopPropagation();
+                                          handlePackageSelect(msg.key, option);
+                                        }}
                                         disabled={option.available === false || isSending}
                                       >
                                         {isSelected ? "Selected" : "Select"}
@@ -2096,6 +2265,21 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                               );
                             })}
                           </div>
+
+                          {(msg.packageOptions?.length ?? 0) > 1 && (
+                            <div className="ci-package-pagination" aria-label="Package carousel navigation">
+                              {msg.packageOptions?.map((option, optionIndex) => (
+                                <button
+                                  key={`pager-${option.packageId}`}
+                                  type="button"
+                                  className={`ci-package-pagination__dot${activePackageIndex === optionIndex ? " ci-package-pagination__dot--active" : ""}`}
+                                  aria-label={`Go to ${option.packageName}`}
+                                  aria-pressed={activePackageIndex === optionIndex}
+                                  onClick={() => scrollPackageCard(msg.key, optionIndex)}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </>
                       )}
 
@@ -2220,7 +2404,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   ref={inputRef}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
-                  placeholder="Type your messageâ€¦"
+                  placeholder="Type your message..."
                   className="ci-composer__input"
                   autoComplete="off"
                   aria-label="Type your message"
@@ -2259,7 +2443,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   className="ci-gate__btn"
                   disabled={isStarting || !nameInput.trim()}
                 >
-                  {isStarting ? "Startingâ€¦" : "Start Chat"}
+                  {isStarting ? "Starting..." : "Start Chat"}
                 </button>
               </form>
             </div>

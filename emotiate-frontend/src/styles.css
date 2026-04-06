@@ -293,7 +293,7 @@ body {
 
 .package-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -301,6 +301,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .package-card__media {
@@ -514,6 +515,10 @@ body {
   .dashboard-split {
     grid-template-columns: 1fr;
   }
+
+  .package-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -537,6 +542,10 @@ body {
   }
 
   .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .package-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -801,3 +810,39 @@ body {
   color: var(--faint);
 }
 .recharts-tooltip-wrapper .recharts-default-tooltip { display:none !important; }
+
+@media (max-width: 768px) {
+  .admin-root { display: flex !important; flex-direction: column !important; }
+  .admin-root > aside {
+    width: 100% !important; height: auto !important; min-height: unset !important;
+    position: sticky !important; top: 0 !important; z-index: 10 !important;
+    flex-direction: row !important; align-items: center !important; padding: 0 10px !important;
+    overflow-x: auto !important; overflow-y: hidden !important;
+    border-right: none !important; border-bottom: 1px solid var(--border) !important;
+    scrollbar-width: none !important; gap: 4px !important;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18) !important;
+  }
+  .admin-root > aside::-webkit-scrollbar { display: none; }
+  .sb-logo, .sb-theme, .sb-profile { display: none !important; }
+  .admin-root > aside > nav {
+    flex: 1 !important; flex-direction: row !important; gap: 2px !important;
+    overflow-x: auto !important; scrollbar-width: none !important; padding: 8px 0 !important;
+  }
+  .admin-root > aside > nav::-webkit-scrollbar { display: none; }
+  .admin-root > aside > nav > div:first-child { display: none !important; }
+  .admin-root > aside .nav-item {
+    padding: 7px 10px !important; font-size: 12px !important;
+    white-space: nowrap !important; flex-shrink: 0 !important;
+    gap: 5px !important; border-radius: 8px !important;
+  }
+  .admin-main { flex: 1 !important; min-height: 0; }
+}
+
+@media (max-width: 480px) {
+  .dashboard-hero__value { font-size: 26px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 481px) and (max-width: 640px) {
+  .dashboard-session-card__grid { grid-template-columns: repeat(2, 1fr); }
+}

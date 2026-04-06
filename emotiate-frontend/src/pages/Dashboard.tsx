@@ -121,7 +121,7 @@ export function Dashboard() {
         chatApi.getAllSessions().catch(() => [] as NegotiationSessionResponseDto[]),
         bookingApi.getAll().catch(() => [] as BookingResponseDto[]),
         roomApi.getAll().catch(() => [] as RoomResponseDto[]),
-        packageApi.getAll().catch(() => [] as PackageResponseDto[]),
+        packageApi.getAllPublic().catch(() => [] as PackageResponseDto[]),
         chatApi.getResponseTimeStats().catch(() => ({ averageResponseTimeMs: 0, totalReplies: 0 })),
       ]);
       setSessions(sess);
@@ -290,33 +290,72 @@ export function Dashboard() {
           {activeSessions.length === 0 ? (
             <div className="dashboard-empty">No active sessions right now</div>
           ) : (
-            <div className="dashboard-table">
-              <table className="el-table">
-                <thead>
-                  <tr>
-                    {['Session ID', 'Guest', 'Round', 'Offered Price', 'Started', 'Status'].map((h) => (
-                      <th key={h}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeSessions.slice(0, 5).map((s) => (
-                    <tr key={s.id}>
-                      <td style={{ color: t.gold, fontFamily: 'monospace', fontSize: 12 }}>{s.sessionId}</td>
-                      <td style={{ fontWeight: 500 }}>{s.guestName}</td>
-                      <td style={{ color: t.muted }}>#{s.currentRound}</td>
-                      <td style={{ color: '#4ade80', fontWeight: 600 }}>
-                        {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
-                      </td>
-                      <td style={{ color: t.muted, fontSize: 12 }}>
-                        {fmtDate(s.startedAt)} {fmtTime(s.startedAt)}
-                      </td>
-                      <td><StatusBadge value={s.status} /></td>
+            <>
+              <div className="dashboard-table dashboard-table--desktop">
+                <table className="el-table">
+                  <thead>
+                    <tr>
+                      {['Session ID', 'Guest', 'Round', 'Offered Price', 'Started', 'Status'].map((h) => (
+                        <th key={h}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {activeSessions.slice(0, 5).map((s) => (
+                      <tr key={s.id}>
+                        <td style={{ color: t.gold, fontFamily: 'monospace', fontSize: 12 }}>{s.sessionId}</td>
+                        <td style={{ fontWeight: 500 }}>{s.guestName}</td>
+                        <td style={{ color: t.muted }}>#{s.currentRound}</td>
+                        <td style={{ color: '#4ade80', fontWeight: 600 }}>
+                          {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
+                        </td>
+                        <td style={{ color: t.muted, fontSize: 12 }}>
+                          {fmtDate(s.startedAt)} {fmtTime(s.startedAt)}
+                        </td>
+                        <td><StatusBadge value={s.status} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="dashboard-session-list dashboard-session-list--mobile">
+                {activeSessions.slice(0, 5).map((s) => (
+                  <article key={`mobile-${s.id}`} className="dashboard-session-card">
+                    <div className="dashboard-session-card__head">
+                      <div>
+                        <div className="dashboard-session-card__label">Session ID</div>
+                        <div className="dashboard-session-card__value dashboard-session-card__value--mono">{s.sessionId}</div>
+                      </div>
+                      <StatusBadge value={s.status} />
+                    </div>
+
+                    <div className="dashboard-session-card__grid">
+                      <div>
+                        <div className="dashboard-session-card__label">Guest</div>
+                        <div className="dashboard-session-card__value">{s.guestName}</div>
+                      </div>
+                      <div>
+                        <div className="dashboard-session-card__label">Round</div>
+                        <div className="dashboard-session-card__value">#{s.currentRound}</div>
+                      </div>
+                      <div>
+                        <div className="dashboard-session-card__label">Offered Price</div>
+                        <div className="dashboard-session-card__value dashboard-session-card__value--success">
+                          {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="dashboard-session-card__label">Started</div>
+                        <div className="dashboard-session-card__value">
+                          {fmtDate(s.startedAt)} {fmtTime(s.startedAt)}
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
         </div>
 

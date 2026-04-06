@@ -10,9 +10,7 @@ import type {
   ResponseTimeStatsDto,
 } from './types';
 
-export const BASE_URL =
-  (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ||
-  'http://localhost:8080';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export function getToken(): string | null  { return localStorage.getItem('el_token'); }
 export function setToken(t: string): void  { localStorage.setItem('el_token', t); }
@@ -97,6 +95,13 @@ export const packageApi = {
     if (params?.roomType) qs.set('roomType', params.roomType);
     const q = qs.toString();
     return get<PackageResponseDto[]>(`/api/package/get${q ? `?${q}` : ''}`);
+  },
+  getAllPublic: (params?: { isActive?: boolean; roomType?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.isActive !== undefined) qs.set('isActive', String(params.isActive));
+    if (params?.roomType) qs.set('roomType', params.roomType);
+    const q = qs.toString();
+    return get<PackageResponseDto[]>(`/api/package/get${q ? `?${q}` : ''}`, false);
   },
   getById: (id: number)                                => get<PackageResponseDto>(`/api/package/get/${id}`),
   add:     (dto: PackageAddRequestDto)                 => post<PackageResponseDto>('/api/package/add', dto),

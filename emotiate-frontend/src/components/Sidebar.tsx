@@ -41,7 +41,7 @@ export function Sidebar({ active, setActive }: SidebarProps) {
       boxShadow: mode === 'light' ? '2px 0 20px rgba(0,0,0,0.06)' : '24px 0 60px rgba(0,0,0,0.22)',
       zIndex: 2,
     }}>
-      <div style={{
+      <div className="sb-logo" style={{
         padding: '10px',
         borderRadius: 18,
         border: `1px solid ${t.border}`,
@@ -71,6 +71,7 @@ export function Sidebar({ active, setActive }: SidebarProps) {
       </nav>
 
       <button
+        className="sb-theme"
         onClick={toggle}
         style={{
           display: 'flex', alignItems: 'center', gap: 9,
@@ -86,7 +87,7 @@ export function Sidebar({ active, setActive }: SidebarProps) {
         {mode === 'dark' ? 'Light Mode' : 'Dark Mode'}
       </button>
 
-      <div style={{
+      <div className="sb-profile" style={{
         padding: '12px 10px',
         display: 'flex',
         alignItems: 'center',

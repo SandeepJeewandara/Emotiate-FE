@@ -390,7 +390,7 @@ function LoginPage({ onLogin }) {
             {errors.password && <div className="err-msg"><Ico d={ICONS.alert} size={12} />{errors.password}</div>}
           </div>
           <button className="btn-gold" onClick={submit} disabled={loading} style={{ padding: "12px", marginTop: 6, borderRadius: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {loading ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", animation: "spinSlow 0.7s linear infinite" }} /> Signing inâ€¦</> : "Sign In"}
+            {loading ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", animation: "spinSlow 0.7s linear infinite" }} /> Signing in...</> : "Sign In"}
           </button>
         </div>
 
@@ -706,7 +706,7 @@ function UserManagement({ users, setUsers, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search usersâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search users..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ADMIN", "STAFF", "GUEST"].map((r) => (
           <button key={r} className={`tab-btn ${filter === r ? "active" : ""}`} onClick={() => setFilter(r)}>{r}</button>
@@ -827,7 +827,7 @@ function RoomManagement({ rooms, setRooms, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search roomsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search rooms..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", ...ROOM_TYPES].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -949,7 +949,7 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search packagesâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search packages..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", ...ROOM_TYPES].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -1047,7 +1047,7 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
             <Field label="Lower Bound Price (LKR) *" half error={errs.lowerBoundPrice}><input className="input" type="number" min="0" value={form.lowerBoundPrice || ""} onChange={(e) => sf("lowerBoundPrice", e.target.value)} /></Field>
             <Field label="Upper Bound Price (LKR) *" half error={errs.upperBoundPrice}><input className="input" type="number" min="0" value={form.upperBoundPrice || ""} onChange={(e) => sf("upperBoundPrice", e.target.value)} /></Field>
             <Field label="Image URL">
-              <input className="input" placeholder="https://â€¦" value={form.imageUrl || ""} onChange={(e) => sf("imageUrl", e.target.value)} />
+              <input className="input" placeholder="https://..." value={form.imageUrl || ""} onChange={(e) => sf("imageUrl", e.target.value)} />
               {form.imageUrl && <img src={form.imageUrl} alt="" style={{ marginTop: 8, height: 80, borderRadius: 8, objectFit: "cover", width: "100%", border: `1px solid ${G.border}` }} onError={(e) => e.target.style.display = "none"} />}
             </Field>
             <Field label="Add-ons">
@@ -1114,7 +1114,7 @@ function SessionManagement({ sessions, setSessions, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search sessionsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search sessions..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", "COMPLETED", "ABORTED"].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -1200,7 +1200,7 @@ function BookingManagement({ bookings, setBookings, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search bookingsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search bookings..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         <button className={`tab-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>ALL</button>
       </div>

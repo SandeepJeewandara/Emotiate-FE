@@ -196,7 +196,7 @@ export function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            {loading ? <><Spinner size={15} /> Signing inâ€¦</> : 'Sign In'}
+            {loading ? <><Spinner size={15} /> Signing in...</> : 'Sign In'}
           </button>
         </div>
 
