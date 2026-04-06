@@ -500,6 +500,14 @@ body {
   overflow-x: auto;
 }
 
+.dashboard-table--desktop {
+  display: block;
+}
+
+.dashboard-session-list--mobile {
+  display: none;
+}
+
 .dashboard-empty {
   padding: 32px 0;
   text-align: center;
@@ -524,6 +532,15 @@ body {
 @media (max-width: 768px) {
   .admin-main {
     padding: 22px 16px 28px;
+  }
+
+  .dashboard-table--desktop {
+    display: none;
+  }
+
+  .dashboard-session-list--mobile {
+    display: grid;
+    gap: 12px;
   }
 
   .page-hero {

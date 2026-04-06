@@ -127,7 +127,6 @@ export function UserManagement() {
     return matchesSearch && matchesFilter;
   });
 
-  const activeUsers = users.filter((u) => u.isActive).length;
   const adminUsers = users.filter((u) => u.isActive && u.role === 'ADMIN').length;
   const staffUsers = users.filter((u) => u.isActive && u.role === 'STAFF').length;
   const guestUsers = users.filter((u) => u.isActive && u.role === 'GUEST').length;

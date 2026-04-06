@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { chatApi, bookingApi, roomApi, packageApi } from '../api';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import {
   PageHeader, StatCard, Spinner, fmt, fmtDate, fmtTime,
   Ico, IC, StatusBadge,
@@ -13,17 +12,6 @@ import type {
   PackageResponseDto,
   ResponseTimeStatsDto,
 } from '../types';
-
-function formatResponseTime(ms: number) {
-  if (!Number.isFinite(ms) || ms <= 0) return '0s';
-
-  const roundedSeconds = Math.round(ms / 1000);
-  const minutes = Math.floor(roundedSeconds / 60);
-  const seconds = roundedSeconds % 60;
-
-  if (minutes === 0) return `${seconds}s`;
-  return `${minutes}m ${seconds}s`;
-}
 
 function BookingCalendar({ bookings }: { bookings: BookingResponseDto[] }) {
   const { t } = useTheme();
@@ -101,7 +89,6 @@ type HeroCard = {
 
 export function Dashboard() {
   const { t } = useTheme();
-  const { user } = useAuth();
 
   const [sessions, setSessions] = useState<NegotiationSessionResponseDto[]>([]);
   const [bookings, setBookings] = useState<BookingResponseDto[]>([]);

@@ -67,7 +67,6 @@ export function BookingManagement() {
   };
 
   const revenue = bookings.filter((b) => b.status === 'CONFIRMED').reduce((a, b) => a + b.totalPrice, 0);
-  const pendingCount = bookings.filter((b) => b.status === 'PENDING').length;
 
   return (
     <>
