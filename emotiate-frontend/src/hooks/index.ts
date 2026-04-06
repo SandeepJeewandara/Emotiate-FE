@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 
-// ─── Notification hook ────────────────────────────────────────────────────────
 export type NotifType = 'success' | 'error' | 'info';
 export interface NotifItem { id: number; msg: string; type: NotifType; }
 
@@ -20,7 +19,6 @@ export function useNotif() {
   return { items, push, remove };
 }
 
-// ─── Async state hook ─────────────────────────────────────────────────────────
 export interface AsyncState<T> {
   data:    T | null;
   loading: boolean;

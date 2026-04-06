@@ -10,25 +10,34 @@ import type { PackageResponseDto, PackageAddRequestDto, PackageUpdateRequestDto,
 
 const ROOM_TYPES = ['SINGLE', 'DOUBLE', 'DELUXE', 'SUITE', 'FAMILY'] as const;
 const ADDONS = [
-  'BREAKFAST','LUNCH','DINNER','FULL_BOARD',
-  'SPA','POOL_ACCESS','AIRPORT_TRANSFER','LATE_CHECKOUT','EARLY_CHECKIN',
+  'BREAKFAST', 'LUNCH', 'DINNER', 'FULL_BOARD',
+  'SPA', 'POOL_ACCESS', 'AIRPORT_TRANSFER', 'LATE_CHECKOUT', 'EARLY_CHECKIN',
 ] as const;
 
 interface FormState {
-  name:            string;
-  description:     string;
-  roomId:          string;
+  name: string;
+  description: string;
+  roomId: string;
   lowerBoundPrice: string;
   upperBoundPrice: string;
-  maxOccupancy:    string;
-  addOns:          string[];
-  imageUrl:        string;
-  isActive:        boolean;
+  maxOccupancy: string;
+  addOns: string[];
+  imageUrl: string;
+  isActive: boolean;
 }
+
 interface Errors { [k: string]: string | undefined; }
+
 const blank = (): FormState => ({
-  name: '', description: '', roomId: '', lowerBoundPrice: '',
-  upperBoundPrice: '', maxOccupancy: '', addOns: [], imageUrl: '', isActive: true,
+  name: '',
+  description: '',
+  roomId: '',
+  lowerBoundPrice: '',
+  upperBoundPrice: '',
+  maxOccupancy: '',
+  addOns: [],
+  imageUrl: '',
+  isActive: true,
 });
 
 export function PackageManagement() {
@@ -36,103 +45,143 @@ export function PackageManagement() {
   const notif = useNotif();
 
   const [packages, setPackages] = useState<PackageResponseDto[]>([]);
-  const [rooms,    setRooms]    = useState<RoomResponseDto[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState('');
-  const [filter,   setFilter]   = useState<'ALL' | 'ACTIVE' | typeof ROOM_TYPES[number]>('ALL');
-  const [modal,    setModal]    = useState<'add' | 'edit' | 'view' | null>(null);
-  const [confirm,  setConfirm]  = useState<number | null>(null);
-  const [editId,   setEditId]   = useState<number | null>(null);
-  const [viewPkg,  setViewPkg]  = useState<PackageResponseDto | null>(null);
-  const [form,     setForm]     = useState<FormState>(blank());
-  const [errs,     setErrs]     = useState<Errors>({});
-  const [saving,   setSaving]   = useState(false);
-  const [imgErr,   setImgErr]   = useState(false);
+  const [rooms, setRooms] = useState<RoomResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | typeof ROOM_TYPES[number]>('ALL');
+  const [modal, setModal] = useState<'add' | 'edit' | 'view' | null>(null);
+  const [confirm, setConfirm] = useState<number | null>(null);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [viewPkg, setViewPkg] = useState<PackageResponseDto | null>(null);
+  const [form, setForm] = useState<FormState>(blank());
+  const [errs, setErrs] = useState<Errors>({});
+  const [saving, setSaving] = useState(false);
+  const [imgErr, setImgErr] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [pkgs, rms] = await Promise.all([packageApi.getAll(), roomApi.getAll({ isActive: true })]);
-      setPackages(pkgs); setRooms(rms);
+      setPackages(pkgs);
+      setRooms(rms);
     } catch (e: unknown) {
-      notif.push(e instanceof Error ? e.message : 'Failed to load', 'error');
-    } finally { setLoading(false); }
-  }, []); // eslint-disable-line
+      notif.push(e instanceof Error ? e.message : 'Failed to load packages', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [notif.push]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = packages.filter((p) => {
     const q = search.toLowerCase();
-    const ms = p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
-    const mf = filter === 'ALL' ? true : filter === 'ACTIVE' ? p.isActive : p.roomType === filter;
-    return ms && mf;
+    const matchesSearch = p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+    const matchesFilter = filter === 'ALL' ? true : filter === 'ACTIVE' ? p.isActive : p.roomType === filter;
+    return matchesSearch && matchesFilter;
   });
+
+  const activePackages = packages.filter((p) => p.isActive).length;
+  const averageNightlyBase = packages.length
+    ? Math.round(packages.reduce((sum, p) => sum + p.lowerBoundPrice, 0) / packages.length)
+    : 0;
+  const totalAddOnLinks = packages.reduce((sum, p) => sum + p.addOns.length, 0);
 
   const sf = (k: keyof FormState, v: string | boolean | string[]) => {
     setForm((p) => ({ ...p, [k]: v }));
     setErrs((p) => ({ ...p, [k]: undefined }));
   };
-  const toggleAddon = (a: string) =>
+
+  const toggleAddon = (a: string) => {
     sf('addOns', form.addOns.includes(a) ? form.addOns.filter((x) => x !== a) : [...form.addOns, a]);
+  };
 
   const validate = (): Errors => {
     const e: Errors = {};
     if (!form.name.trim()) e.name = 'Required';
-    if (!form.roomId)      e.roomId = 'Select a room';
+    if (!form.roomId) e.roomId = 'Select a room';
     if (!form.lowerBoundPrice || +form.lowerBoundPrice < 1) e.lowerBoundPrice = 'Required';
     if (!form.upperBoundPrice || +form.upperBoundPrice < 1) e.upperBoundPrice = 'Required';
-    if (+form.upperBoundPrice < +form.lowerBoundPrice) e.upperBoundPrice = 'Must be ≥ lower bound';
+    if (+form.upperBoundPrice < +form.lowerBoundPrice) e.upperBoundPrice = 'Must be >= lower bound';
     if (!form.maxOccupancy || +form.maxOccupancy < 1) e.maxOccupancy = 'Required';
     return e;
   };
 
-  const openAdd = () => { setForm(blank()); setErrs({}); setImgErr(false); setModal('add'); };
+  const openAdd = () => {
+    setForm(blank());
+    setErrs({});
+    setImgErr(false);
+    setModal('add');
+  };
+
   const openEdit = (p: PackageResponseDto) => {
     setForm({
-      name: p.name, description: p.description ?? '',
-      roomId: String(p.roomId), lowerBoundPrice: String(p.lowerBoundPrice),
-      upperBoundPrice: String(p.upperBoundPrice), maxOccupancy: String(p.maxOccupancy),
-      addOns: [...p.addOns], imageUrl: p.imageUrl ?? '', isActive: p.isActive,
+      name: p.name,
+      description: p.description ?? '',
+      roomId: String(p.roomId),
+      lowerBoundPrice: String(p.lowerBoundPrice),
+      upperBoundPrice: String(p.upperBoundPrice),
+      maxOccupancy: String(p.maxOccupancy),
+      addOns: [...p.addOns],
+      imageUrl: p.imageUrl ?? '',
+      isActive: p.isActive,
     });
-    setEditId(p.id); setErrs({}); setImgErr(false); setModal('edit');
+    setEditId(p.id);
+    setErrs({});
+    setImgErr(false);
+    setModal('edit');
   };
 
   const save = async () => {
     const e = validate();
-    if (Object.keys(e).length) return setErrs(e);
+    if (Object.keys(e).length) {
+      setErrs(e);
+      return;
+    }
+
     setSaving(true);
     try {
       if (modal === 'add') {
         const dto: PackageAddRequestDto = {
-          name: form.name, description: form.description,
-          roomId: +form.roomId, lowerBoundPrice: +form.lowerBoundPrice,
-          upperBoundPrice: +form.upperBoundPrice, maxOccupancy: +form.maxOccupancy,
-          addOns: form.addOns, imageUrl: form.imageUrl,
+          name: form.name,
+          description: form.description,
+          roomId: +form.roomId,
+          lowerBoundPrice: +form.lowerBoundPrice,
+          upperBoundPrice: +form.upperBoundPrice,
+          maxOccupancy: +form.maxOccupancy,
+          addOns: form.addOns,
+          imageUrl: form.imageUrl,
         };
         const created = await packageApi.add(dto);
         setPackages((p) => [...p, created]);
         notif.push('Package created');
       } else if (editId !== null) {
         const dto: PackageUpdateRequestDto = {
-          name: form.name || undefined, description: form.description || undefined,
-          roomId: +form.roomId || undefined, lowerBoundPrice: +form.lowerBoundPrice || undefined,
-          upperBoundPrice: +form.upperBoundPrice || undefined, maxOccupancy: +form.maxOccupancy || undefined,
-          addOns: form.addOns, imageUrl: form.imageUrl || undefined, isActive: form.isActive,
+          name: form.name || undefined,
+          description: form.description || undefined,
+          roomId: +form.roomId || undefined,
+          lowerBoundPrice: +form.lowerBoundPrice || undefined,
+          upperBoundPrice: +form.upperBoundPrice || undefined,
+          maxOccupancy: +form.maxOccupancy || undefined,
+          addOns: form.addOns,
+          imageUrl: form.imageUrl || undefined,
+          isActive: form.isActive,
         };
         const upd = await packageApi.edit(editId, dto);
-        setPackages((p) => p.map((pk) => pk.id === editId ? upd : pk));
+        setPackages((p) => p.map((pk) => (pk.id === editId ? upd : pk)));
         notif.push('Package updated');
       }
       setModal(null);
     } catch (err: unknown) {
       notif.push(err instanceof Error ? err.message : 'Save failed', 'error');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: number) => {
     try {
       await packageApi.remove(id);
-      setPackages((p) => p.map((pk) => pk.id === id ? { ...pk, isActive: false } : pk));
+      setPackages((p) => p.map((pk) => (pk.id === id ? { ...pk, isActive: false } : pk)));
       notif.push('Package deactivated', 'info');
     } catch (err: unknown) {
       notif.push(err instanceof Error ? err.message : 'Remove failed', 'error');
@@ -140,20 +189,28 @@ export function PackageManagement() {
     setConfirm(null);
   };
 
-  const ADDON_FORM = (
+  const addOnForm = (
     <Field label="Add-ons">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 4 }}>
         {ADDONS.map((a) => {
-          const sel = form.addOns.includes(a);
+          const selected = form.addOns.includes(a);
           return (
-            <button key={a} type="button" onClick={() => toggleAddon(a)} style={{
-              padding: '4px 11px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-              transition: 'all 0.15s',
-              background: sel ? `${t.gold}28` : 'transparent',
-              border: `1px solid ${sel ? t.gold : t.border}`,
-              color: sel ? t.gold : t.muted,
-              fontFamily: "'Syne', sans-serif",
-            }}>
+            <button
+              key={a}
+              type="button"
+              onClick={() => toggleAddon(a)}
+              style={{
+                padding: '5px 11px',
+                borderRadius: 20,
+                fontSize: 12,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                background: selected ? `${t.gold}28` : 'transparent',
+                border: `1px solid ${selected ? t.gold : t.border}`,
+                color: selected ? t.gold : t.muted,
+                fontFamily: "'Manrope', sans-serif",
+              }}
+            >
               {a.replace(/_/g, ' ')}
             </button>
           );
@@ -168,7 +225,8 @@ export function PackageManagement() {
 
       <PageHeader
         title="Package Management"
-        subtitle="Create and manage hotel packages with rooms and add-ons."
+        subtitle="Curate sellable stays with room pairing, pricing bands, and add-on bundles."
+        eyebrow="Commercial Offers"
         action={
           <button className="btn-gold" style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: 7 }} onClick={openAdd}>
             <Ico d={IC.plus} size={14} /> Add Package
@@ -176,103 +234,130 @@ export function PackageManagement() {
         }
       />
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.muted, pointerEvents: 'none' }}>
+      <section className="metric-strip">
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Active Packages</div>
+          <div className="metric-strip__value">{activePackages}</div>
+          <div className="metric-strip__sub">Currently offered to guests</div>
+        </article>
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Avg. Base Price</div>
+          <div className="metric-strip__value">LKR {fmt(averageNightlyBase)}</div>
+          <div className="metric-strip__sub">Average lower-bound nightly offer</div>
+        </article>
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Add-on Links</div>
+          <div className="metric-strip__value">{totalAddOnLinks}</div>
+          <div className="metric-strip__sub">Amenities attached across all packages</div>
+        </article>
+      </section>
+
+      <div className="page-toolbar">
+        <div className="page-toolbar__search">
+          <div className="page-toolbar__search-icon">
             <Ico d={IC.search} size={14} />
           </div>
-          <input className="el-search" placeholder="Search packages…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
+          <input className="el-search" placeholder="Search packages..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
         </div>
-        {(['ALL', 'ACTIVE', ...ROOM_TYPES] as const).map((f) => (
-          <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
-        ))}
-      </div>
-
-      {/* Card grid */}
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 48, color: t.muted, gap: 10 }}>
-          <Spinner size={18} /> Loading packages…
-        </div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 48, color: t.muted }}>No packages found</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-          {filtered.map((p, i) => (
-            <div key={p.id} className={`el-card anim-fade-up delay-${Math.min(i + 1, 8) as 1}`} style={{ overflow: 'hidden' }}>
-              {/* Image */}
-              <div style={{ position: 'relative', height: 155 }}>
-                {p.imageUrl ? (
-                  <img
-                    src={p.imageUrl}
-                    alt={p.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                  />
-                ) : (
-                  <div className="pkg-img-placeholder">
-                    <Ico d={IC.img} size={34} stroke={t.faint} />
-                  </div>
-                )}
-                <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                  <StatusBadge value={String(p.isActive)} />
-                </div>
-              </div>
-
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: t.goldLight, marginBottom: 4 }}>
-                  {p.name}
-                </div>
-                <div style={{ fontSize: 12.5, color: t.muted, marginBottom: 10, lineHeight: 1.45 }}>
-                  {p.description}
-                </div>
-
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                  <StatusBadge value={p.roomType} />
-                  <span style={{ fontSize: 11.5, color: t.muted, display: 'flex', alignItems: 'center', gap: 3 }}>
-                    Room #{p.roomNumber}
-                  </span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ fontWeight: 700, color: t.text, fontSize: 13 }}>
-                    LKR {fmt(p.lowerBoundPrice)} – {fmt(p.upperBoundPrice)}
-                  </span>
-                  <span style={{ fontSize: 12, color: t.muted }}>Max {p.maxOccupancy}</span>
-                </div>
-
-                {p.addOns.length > 0 && (
-                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
-                    {p.addOns.slice(0, 4).map((a) => (
-                      <span key={a} style={{
-                        fontSize: 10.5, padding: '2px 8px', borderRadius: 20,
-                        background: `${t.gold}10`, border: `1px solid ${t.border}`, color: t.muted,
-                      }}>
-                        {a.replace(/_/g, ' ')}
-                      </span>
-                    ))}
-                    {p.addOns.length > 4 && <span style={{ fontSize: 11, color: t.muted }}>+{p.addOns.length - 4}</span>}
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 7 }}>
-                  <button className="btn-ghost" style={{ flex: 1, padding: '6px 10px', fontSize: 12.5 }} onClick={() => { setViewPkg(p); setModal('view'); }}>
-                    Details
-                  </button>
-                  <button className="btn-ghost" style={{ padding: '6px 9px' }} onClick={() => openEdit(p)}>
-                    <Ico d={IC.edit} size={13} />
-                  </button>
-                  <button className="btn-danger" style={{ padding: '6px 9px' }} onClick={() => setConfirm(p.id)}>
-                    <Ico d={IC.trash} size={13} />
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="page-toolbar__filters">
+          {(['ALL', 'ACTIVE', ...ROOM_TYPES] as const).map((f) => (
+            <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* View modal */}
+      <section className="el-card content-card">
+        <div className="content-card__head">
+          <div>
+            <h3>Offer Collection</h3>
+            <p>Browse package cards with clearer pricing, room context, and amenity visibility.</p>
+          </div>
+          <span className="content-card__pill">{filtered.length} packages</span>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 48, color: t.muted, gap: 10 }}>
+            <Spinner size={18} /> Loading packages...
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 48, color: t.muted }}>No packages found</div>
+        ) : (
+          <div className="package-grid">
+            {filtered.map((p, i) => (
+              <article key={p.id} className={`el-card package-card anim-fade-up delay-${Math.min(i + 1, 8) as 1}`}>
+                <div className="package-card__media">
+                  {p.imageUrl ? (
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="package-card__image"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div className="pkg-img-placeholder" style={{ height: '100%' }}>
+                      <Ico d={IC.img} size={34} stroke={t.faint} />
+                    </div>
+                  )}
+                  <div className="package-card__overlay">
+                    <div className="package-card__row">
+                      <StatusBadge value={String(p.isActive)} />
+                      <span style={{ color: '#fff', fontSize: 12.5 }}>Room #{p.roomNumber}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="package-card__body">
+                  <div>
+                    <div className="package-card__title">{p.name}</div>
+                    <div className="package-card__desc">{p.description}</div>
+                  </div>
+
+                  <div className="package-card__row">
+                    <StatusBadge value={p.roomType} />
+                    <span style={{ fontSize: 12, color: t.muted }}>Max {p.maxOccupancy} guests</span>
+                  </div>
+
+                  <div className="package-card__row">
+                    <span className="package-card__price">LKR {fmt(p.lowerBoundPrice)} - {fmt(p.upperBoundPrice)}</span>
+                    <span style={{ fontSize: 12, color: t.muted }}>{p.addOns.length} add-ons</span>
+                  </div>
+
+                  {p.addOns.length > 0 && (
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {p.addOns.slice(0, 4).map((a) => (
+                        <span key={a} style={{
+                          fontSize: 10.5,
+                          padding: '3px 8px',
+                          borderRadius: 20,
+                          background: `${t.gold}10`,
+                          border: `1px solid ${t.border}`,
+                          color: t.muted,
+                        }}>
+                          {a.replace(/_/g, ' ')}
+                        </span>
+                      ))}
+                      {p.addOns.length > 4 && <span style={{ fontSize: 11, color: t.muted }}>+{p.addOns.length - 4} more</span>}
+                    </div>
+                  )}
+
+                  <div className="package-card__actions">
+                    <button className="btn-ghost" style={{ flex: 1, padding: '7px 10px', fontSize: 12.5 }} onClick={() => { setViewPkg(p); setModal('view'); }}>
+                      Details
+                    </button>
+                    <button className="btn-ghost" style={{ padding: '7px 9px' }} onClick={() => openEdit(p)}>
+                      <Ico d={IC.edit} size={13} />
+                    </button>
+                    <button className="btn-danger" style={{ padding: '7px 9px' }} onClick={() => setConfirm(p.id)}>
+                      <Ico d={IC.trash} size={13} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       {modal === 'view' && viewPkg && (
         <Modal title={viewPkg.name} onClose={() => setModal(null)} wide>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
@@ -288,8 +373,8 @@ export function PackageManagement() {
             </div>
             <div>
               {[
-                ['Room', `#${viewPkg.roomNumber} — ${viewPkg.roomType}`],
-                ['Price Range', `LKR ${fmt(viewPkg.lowerBoundPrice)} – ${fmt(viewPkg.upperBoundPrice)}`],
+                ['Room', `#${viewPkg.roomNumber} - ${viewPkg.roomType}`],
+                ['Price Range', `LKR ${fmt(viewPkg.lowerBoundPrice)} - ${fmt(viewPkg.upperBoundPrice)}`],
                 ['Max Occupancy', `${viewPkg.maxOccupancy} guests`],
                 ['Status', viewPkg.isActive ? 'Active' : 'Inactive'],
               ].map(([k, v]) => (
@@ -301,13 +386,11 @@ export function PackageManagement() {
               <div style={{ marginTop: 14 }}>
                 <div style={{ fontSize: 12, color: t.muted, marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>Add-ons</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {viewPkg.addOns.length > 0
-                    ? viewPkg.addOns.map((a) => (
-                        <span key={a} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: `${t.gold}14`, border: `1px solid ${t.border}`, color: t.gold }}>
-                          {a.replace(/_/g, ' ')}
-                        </span>
-                      ))
-                    : <span style={{ color: t.muted, fontSize: 13 }}>No add-ons</span>}
+                  {viewPkg.addOns.length > 0 ? viewPkg.addOns.map((a) => (
+                    <span key={a} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 20, background: `${t.gold}14`, border: `1px solid ${t.border}`, color: t.gold }}>
+                      {a.replace(/_/g, ' ')}
+                    </span>
+                  )) : <span style={{ color: t.muted, fontSize: 13 }}>No add-ons</span>}
                 </div>
               </div>
             </div>
@@ -315,7 +398,6 @@ export function PackageManagement() {
         </Modal>
       )}
 
-      {/* Add / Edit modal */}
       {(modal === 'add' || modal === 'edit') && (
         <Modal title={modal === 'add' ? 'Add New Package' : 'Edit Package'} onClose={() => setModal(null)} wide>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
@@ -328,7 +410,7 @@ export function PackageManagement() {
             <Field label="Room" half required error={errs.roomId}>
               <select className="el-input" value={form.roomId} onChange={(e) => sf('roomId', e.target.value)}>
                 <option value="">Select room</option>
-                {rooms.map((r) => <option key={r.id} value={r.id}>#{r.roomNumber} — {r.roomType}</option>)}
+                {rooms.map((r) => <option key={r.id} value={r.id}>#{r.roomNumber} - {r.roomType}</option>)}
               </select>
             </Field>
             <Field label="Max Occupancy" half required error={errs.maxOccupancy}>
@@ -343,7 +425,7 @@ export function PackageManagement() {
             <Field label="Package Image URL">
               <input
                 className="el-input"
-                placeholder="https://…"
+                placeholder="https://..."
                 value={form.imageUrl}
                 onChange={(e) => {
                   setImgErr(false);
@@ -351,11 +433,15 @@ export function PackageManagement() {
                 }}
               />
               {form.imageUrl && !imgErr && (
-                <img src={form.imageUrl} alt="" style={{ marginTop: 8, height: 80, width: '100%', borderRadius: 8, objectFit: 'cover', border: `1px solid ${t.border}` }}
-                  onError={() => setImgErr(true)} />
+                <img
+                  src={form.imageUrl}
+                  alt=""
+                  style={{ marginTop: 8, height: 80, width: '100%', borderRadius: 8, objectFit: 'cover', border: `1px solid ${t.border}` }}
+                  onError={() => setImgErr(true)}
+                />
               )}
             </Field>
-            {ADDON_FORM}
+            {addOnForm}
             {modal === 'edit' && (
               <Field label="Status" half>
                 <select className="el-input" value={form.isActive ? 'true' : 'false'} onChange={(e) => sf('isActive', e.target.value === 'true')}>
@@ -368,7 +454,7 @@ export function PackageManagement() {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
             <button className="btn-ghost" style={{ padding: '9px 20px' }} onClick={() => setModal(null)}>Cancel</button>
             <button className="btn-gold" style={{ padding: '9px 24px', display: 'flex', alignItems: 'center', gap: 7 }} onClick={save} disabled={saving}>
-              {saving ? <><Spinner size={13} /> Saving…</> : modal === 'add' ? 'Add Package' : 'Save Changes'}
+              {saving ? <><Spinner size={13} /> Saving...</> : modal === 'add' ? 'Add Package' : 'Save Changes'}
             </button>
           </div>
         </Modal>

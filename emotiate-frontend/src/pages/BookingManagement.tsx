@@ -1,54 +1,56 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { bookingApi } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { useNotif } from '../hooks';
 import {
   PageHeader, Modal, Confirm, StatusBadge, EmptyState,
-  LoadingRows, NotifStack, Ico, IC, Spinner, fmt, fmtDate, StatCard,
+  LoadingRows, NotifStack, Ico, IC, fmt, fmtDate, StatCard,
 } from '../components/Shared';
 import type { BookingResponseDto, BookingStatus } from '../types';
 
 const STATUSES: BookingStatus[] = ['PENDING', 'CONFIRMED', 'CANCELLED', 'NO_SHOW'];
 const STATUS_COLORS: Record<BookingStatus, string> = {
-  PENDING:   '#fbbf24',
+  PENDING: '#fbbf24',
   CONFIRMED: '#4ade80',
   CANCELLED: '#f87171',
-  NO_SHOW:   '#fb923c',
+  NO_SHOW: '#fb923c',
 };
 
 export function BookingManagement() {
   const { t } = useTheme();
   const notif = useNotif();
 
-  const [bookings,  setBookings]  = useState<BookingResponseDto[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [filter,    setFilter]    = useState<'ALL' | BookingStatus>('ALL');
-  const [detail,    setDetail]    = useState<BookingResponseDto | null>(null);
-  const [confirm,   setConfirm]   = useState<number | null>(null);
+  const [bookings, setBookings] = useState<BookingResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'ALL' | BookingStatus>('ALL');
+  const [detail, setDetail] = useState<BookingResponseDto | null>(null);
+  const [confirm, setConfirm] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setBookings(await bookingApi.getAll()); }
-    catch (e: unknown) { notif.push(e instanceof Error ? e.message : 'Failed to load bookings', 'error'); }
-    finally { setLoading(false); }
-  }, []); // eslint-disable-line
+    try {
+      setBookings(await bookingApi.getAll());
+    } catch (e: unknown) {
+      notif.push(e instanceof Error ? e.message : 'Failed to load bookings', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [notif.push]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = bookings.filter((b) => {
     const q = search.toLowerCase();
-    const ms = b.reference.toLowerCase().includes(q)
+    const matchesSearch = b.reference.toLowerCase().includes(q)
       || (b.packageName ?? '').toLowerCase().includes(q)
       || (b.roomNumber ?? '').toLowerCase().includes(q);
-    const mf = filter === 'ALL' || b.status === filter;
-    return ms && mf;
+    const matchesFilter = filter === 'ALL' || b.status === filter;
+    return matchesSearch && matchesFilter;
   });
 
-  // Note: The API does not expose a status-update endpoint in the reference,
-  // so status changes are local until a PUT endpoint is available.
   const updateStatus = (id: number, status: BookingStatus) => {
-    setBookings((p) => p.map((b) => b.id === id ? { ...b, status } : b));
+    setBookings((p) => p.map((b) => (b.id === id ? { ...b, status } : b)));
     notif.push(`Booking ${status.toLowerCase().replace('_', ' ')}`);
     setDetail(null);
   };
@@ -65,6 +67,7 @@ export function BookingManagement() {
   };
 
   const revenue = bookings.filter((b) => b.status === 'CONFIRMED').reduce((a, b) => a + b.totalPrice, 0);
+  const pendingCount = bookings.filter((b) => b.status === 'PENDING').length;
 
   return (
     <>
@@ -72,7 +75,8 @@ export function BookingManagement() {
 
       <PageHeader
         title="Booking Management"
-        subtitle="View and manage all hotel reservations."
+        subtitle="Review reservation flow, intervene on pending orders, and monitor confirmed revenue."
+        eyebrow="Reservations"
         action={
           <button className="btn-ghost" style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }} onClick={load}>
             <Ico d={IC.refresh} size={13} /> Refresh
@@ -80,8 +84,7 @@ export function BookingManagement() {
         }
       />
 
-      {/* Stat cards (click to filter) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="kpi-grid">
         {STATUSES.map((s, i) => (
           <StatCard
             key={s}
@@ -93,38 +96,40 @@ export function BookingManagement() {
             onClick={() => setFilter(filter === s ? 'ALL' : s)}
           />
         ))}
-        <StatCard
-          label="Total Revenue"
-          value={`LKR ${fmt(revenue)}`}
-          icon={IC.revenue}
-          color="var(--gold)"
-          delay="delay-5"
-        />
+        <StatCard label="Total Revenue" value={`LKR ${fmt(revenue)}`} icon={IC.revenue} color="var(--gold)" delay="delay-5" />
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.muted, pointerEvents: 'none' }}>
+      <div className="page-toolbar">
+        <div className="page-toolbar__search">
+          <div className="page-toolbar__search-icon">
             <Ico d={IC.search} size={14} />
           </div>
-          <input className="el-search" placeholder="Search reference, room, package…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
+          <input className="el-search" placeholder="Search reference, room, package..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
         </div>
-        <button className={`tab-btn ${filter === 'ALL' ? 'active' : ''}`} onClick={() => setFilter('ALL')}>ALL</button>
-        {STATUSES.map((s) => (
-          <button key={s} className={`tab-btn ${filter === s ? 'active' : ''}`} onClick={() => setFilter(filter === s ? 'ALL' : s)}>
-            {s.replace('_', ' ')}
-          </button>
-        ))}
+        <div className="page-toolbar__filters">
+          <button className={`tab-btn ${filter === 'ALL' ? 'active' : ''}`} onClick={() => setFilter('ALL')}>ALL</button>
+          {STATUSES.map((s) => (
+            <button key={s} className={`tab-btn ${filter === s ? 'active' : ''}`} onClick={() => setFilter(filter === s ? 'ALL' : s)}>
+              {s.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="el-card" style={{ overflow: 'hidden' }}>
+      <section className="el-card content-card">
+        <div className="content-card__head">
+          <div>
+            <h3>Reservation Ledger</h3>
+            <p>Scan check-in timing, occupancy, and package attribution without opening each booking.</p>
+          </div>
+          <span className="content-card__pill">{filtered.length} bookings</span>
+        </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table className="el-table">
             <thead>
               <tr>
-                {['Reference','Room','Package','Check-in','Check-out','Nights','Guests','Total','Status','Actions'].map((h) => <th key={h}>{h}</th>)}
+                {['Reference', 'Room', 'Package', 'Check-in', 'Check-out', 'Nights', 'Guests', 'Total', 'Status', 'Actions'].map((h) => <th key={h}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -136,12 +141,12 @@ export function BookingManagement() {
                     </td>
                     <td style={{ fontWeight: 600 }}>#{b.roomNumber}</td>
                     <td style={{ color: t.muted, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {b.packageName || '—'}
+                      {b.packageName || '-'}
                     </td>
                     <td style={{ color: t.muted, whiteSpace: 'nowrap', fontSize: 12 }}>{fmtDate(b.checkInDate)}</td>
                     <td style={{ color: t.muted, whiteSpace: 'nowrap', fontSize: 12 }}>{fmtDate(b.checkOutDate)}</td>
                     <td style={{ color: t.muted }}>{b.totalNights}n</td>
-                    <td style={{ color: t.muted }}>{b.guestCount ?? '—'}</td>
+                    <td style={{ color: t.muted }}>{b.guestCount ?? '-'}</td>
                     <td style={{ fontWeight: 700, color: '#4ade80', whiteSpace: 'nowrap' }}>LKR {fmt(b.totalPrice)}</td>
                     <td><StatusBadge value={b.status} /></td>
                     <td>
@@ -160,29 +165,29 @@ export function BookingManagement() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* Detail modal */}
       {detail && (
-        <Modal title={`Booking — ${detail.reference}`} onClose={() => setDetail(null)}>
+        <Modal title={`Booking - ${detail.reference}`} onClose={() => setDetail(null)}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
             {([
-              ['Reference',       detail.reference,                           true],
-              ['Room',            `#${detail.roomNumber}`,                    false],
-              ['Package',         detail.packageName || '—',                  false],
-              ['Check-in',        fmtDate(detail.checkInDate),                false],
-              ['Check-out',       fmtDate(detail.checkOutDate),               false],
-              ['Nights',          String(detail.totalNights),                 false],
-              ['Guests',          String(detail.guestCount ?? '—'),           false],
-              ['Price / Night',   `LKR ${fmt(detail.offeredPricePerNight)}`,  false],
-              ['Total Price',     `LKR ${fmt(detail.totalPrice)}`,            false],
-              ['Session ID',      detail.sessionId || '—',                   true],
-              ['Created',         fmtDate(detail.createdAt),                  false],
+              ['Reference', detail.reference, true],
+              ['Room', `#${detail.roomNumber}`, false],
+              ['Package', detail.packageName || '-', false],
+              ['Check-in', fmtDate(detail.checkInDate), false],
+              ['Check-out', fmtDate(detail.checkOutDate), false],
+              ['Nights', String(detail.totalNights), false],
+              ['Guests', String(detail.guestCount ?? '-'), false],
+              ['Price / Night', `LKR ${fmt(detail.offeredPricePerNight)}`, false],
+              ['Total Price', `LKR ${fmt(detail.totalPrice)}`, false],
+              ['Session ID', detail.sessionId || '-', true],
+              ['Created', fmtDate(detail.createdAt), false],
             ] as [string, string, boolean][]).map(([k, v, mono]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: `1px solid ${t.border}` }}>
                 <span style={{ fontSize: 12.5, color: t.muted }}>{k}</span>
                 <span style={{
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 13,
+                  fontWeight: 600,
                   fontFamily: mono ? 'monospace' : 'inherit',
                   color: k === 'Total Price' ? '#4ade80' : t.text,
                 }}>
@@ -195,8 +200,6 @@ export function BookingManagement() {
               <StatusBadge value={detail.status} />
             </div>
           </div>
-
-          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 18, paddingTop: 14, borderTop: `1px solid ${t.border}` }}>
             {detail.status === 'PENDING' && (
               <button className="btn-gold" style={{ padding: '8px 16px' }} onClick={() => updateStatus(detail.id, 'CONFIRMED')}>

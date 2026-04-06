@@ -1,8 +1,7 @@
-import React, { ReactNode } from 'react';
-import type { NotifItem, NotifType } from '../hooks';
+import type { ReactNode } from 'react';
+import type { NotifItem } from '../hooks';
 import { useTheme } from '../context/ThemeContext';
 
-// ─── SVG Icon ─────────────────────────────────────────────────────────────────
 interface IcoProps {
   d: string | string[];
   size?: number;
@@ -21,7 +20,6 @@ export function Ico({ d, size = 16, stroke = 'currentColor', fill = 'none', stro
   );
 }
 
-// ─── Icon paths ───────────────────────────────────────────────────────────────
 export const IC = {
   dashboard: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
   users:     ['M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2','M23 21v-2a4 4 0 00-3-3.87','M16 3.13a4 4 0 010 7.75','M9 7a4 4 0 100 8 4 4 0 000-8z'],
@@ -50,7 +48,6 @@ export const IC = {
   clock:     ['M12 22a10 10 0 100-20 10 10 0 000 20z','M12 6v6l4 2'],
 };
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
 export function ELLogo({ size = 34, textSize = 14 }: { size?: number; textSize?: number }) {
   const { t } = useTheme();
   return (
@@ -73,7 +70,6 @@ export function ELLogo({ size = 34, textSize = 14 }: { size?: number; textSize?:
   );
 }
 
-// ─── Spinner ──────────────────────────────────────────────────────────────────
 export function Spinner({ size = 16 }: { size?: number }) {
   return (
     <div style={{
@@ -88,7 +84,6 @@ export function Spinner({ size = 16 }: { size?: number }) {
   );
 }
 
-// ─── Notification stack ───────────────────────────────────────────────────────
 interface NotifProps { items: NotifItem[]; remove: (id: number) => void; }
 export function NotifStack({ items, remove }: NotifProps) {
   return (
@@ -103,7 +98,6 @@ export function NotifStack({ items, remove }: NotifProps) {
   );
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
 interface ModalProps {
   title:    string;
   onClose:  () => void;
@@ -133,7 +127,6 @@ export function Modal({ title, onClose, children, wide, maxWidth }: ModalProps) 
   );
 }
 
-// ─── Confirm dialog ───────────────────────────────────────────────────────────
 interface ConfirmProps {
   msg:       string;
   onConfirm: () => void;
@@ -164,7 +157,6 @@ export function Confirm({ msg, onConfirm, onCancel }: ConfirmProps) {
   );
 }
 
-// ─── Form field ───────────────────────────────────────────────────────────────
 interface FieldProps {
   label:    string;
   error?:   string;
@@ -188,29 +180,33 @@ export function Field({ label, error, children, half, required }: FieldProps) {
   );
 }
 
-// ─── Page header ──────────────────────────────────────────────────────────────
 interface PageHeaderProps {
   title:     string;
   subtitle?: string;
   action?:   ReactNode;
+  eyebrow?:  string;
+  meta?:     ReactNode;
 }
-export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, action, eyebrow, meta }: PageHeaderProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-      <div>
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 27, fontWeight: 600, color: 'var(--gold-light)', lineHeight: 1.1 }}>
-          {title}
-        </h1>
-        {subtitle && (
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 5 }}>{subtitle}</p>
+    <section className="page-hero">
+      <div className="page-hero__row">
+        <div>
+          {eyebrow && <div className="page-hero__eyebrow">{eyebrow}</div>}
+          <h1 className="page-hero__title">{title}</h1>
+          {subtitle && <p className="page-hero__subtitle">{subtitle}</p>}
+          {meta && <div className="page-hero__meta">{meta}</div>}
+        </div>
+        {action && (
+          <div className="page-hero__action">
+            {action}
+          </div>
         )}
       </div>
-      {action}
-    </div>
+    </section>
   );
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
   label:   string;
   value:   string | number;
@@ -248,19 +244,17 @@ export function StatCard({ label, value, icon, sub, color, delay = '', onClick }
   );
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
 export function EmptyState({ msg = 'No records found' }: { msg?: string }) {
   return (
     <tr>
       <td colSpan={99} style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)' }}>
-        <div style={{ fontSize: 36, marginBottom: 10 }}>◇</div>
+        <div style={{ fontSize: 36, marginBottom: 10 }}>â—‡</div>
         <div style={{ fontSize: 14 }}>{msg}</div>
       </td>
     </tr>
   );
 }
 
-// ─── Status badge helper ─────────────────────────────────────────────────────
 export function StatusBadge({ value }: { value: string }) {
   const map: Record<string, string> = {
     ACTIVE: 'badge-active', COMPLETED: 'badge-completed', ABORTED: 'badge-aborted',
@@ -275,7 +269,6 @@ export function StatusBadge({ value }: { value: string }) {
   );
 }
 
-// ─── Custom chart tooltip ─────────────────────────────────────────────────────
 interface ChartTipProps { active?: boolean; payload?: Array<{ color: string; name: string; value: number }>; label?: string; }
 export function ChartTip({ active, payload, label }: ChartTipProps) {
   const { t } = useTheme();
@@ -296,7 +289,6 @@ export function ChartTip({ active, payload, label }: ChartTipProps) {
   );
 }
 
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
 export function LoadingRows({ cols = 5, rows = 5 }: { cols?: number; rows?: number }) {
   return (
     <>
@@ -319,7 +311,6 @@ export function LoadingRows({ cols = 5, rows = 5 }: { cols?: number; rows?: numb
   );
 }
 
-// ─── Format helpers ───────────────────────────────────────────────────────────
 export const fmt    = (n: number)  => new Intl.NumberFormat('en-LK').format(n);
-export const fmtDate = (s?: string) => s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-export const fmtTime = (s?: string) => s ? new Date(s).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
+export const fmtDate = (s?: string) => s ? new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'â€”';
+export const fmtTime = (s?: string) => s ? new Date(s).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'â€”';

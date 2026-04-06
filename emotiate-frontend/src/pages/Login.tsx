@@ -35,11 +35,13 @@ export function LoginPage() {
     if (Object.keys(e).length) return setErrors(e);
     setLoading(true);
     try {
+      const enteredUsername = form.username.trim();
       const res: { token: string; userId: number; username: string; role: 'ADMIN' | 'STAFF' | 'GUEST' } =
-        await authApi.login({ username: form.username.trim(), password: form.password });
+        await authApi.login({ username: enteredUsername, password: form.password });
       const user: AuthUser = {
         ...res,
-        firstName: form.username.trim().charAt(0).toUpperCase() + form.username.trim().slice(1),
+        username: enteredUsername,
+        firstName: enteredUsername.charAt(0).toUpperCase() + enteredUsername.slice(1),
       };
       login(user);
     } catch (err: unknown) {
@@ -64,7 +66,6 @@ export function LoginPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Background geometry */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: `radial-gradient(${isLight ? 'rgba(154,114,48,0.06)' : 'rgba(196,162,99,0.04)'} 1px, transparent 1px)`,
@@ -81,8 +82,6 @@ export function LoginPage() {
         background: `radial-gradient(circle, ${isLight ? 'rgba(154,114,48,0.06)' : 'rgba(167,139,250,0.04)'} 0%, transparent 70%)`,
         bottom: '10%', right: '8%', pointerEvents: 'none',
       }} />
-
-      {/* Theme toggle */}
       <button
         onClick={toggle}
         style={{
@@ -96,8 +95,6 @@ export function LoginPage() {
         <Ico d={mode === 'dark' ? IC.sun : IC.moon} size={14} stroke={t.muted} />
         {mode === 'dark' ? 'Light' : 'Dark'}
       </button>
-
-      {/* Card */}
       <div className="anim-scale-in" style={{
         background:    t.modalBg,
         border:        `1px solid ${t.border}`,
@@ -107,7 +104,6 @@ export function LoginPage() {
         boxShadow:     `0 40px 90px ${isLight ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.7)'}`,
         backdropFilter:'blur(20px)',
       }}>
-        {/* Logo area */}
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
           <img
             src={logo}
@@ -127,10 +123,7 @@ export function LoginPage() {
             User Portal
           </div>
         </div>
-
-        {/* Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
-          {/* Username */}
           <div>
             <label style={{ display: 'block', fontSize: 11.5, color: t.muted, marginBottom: 6, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Username
@@ -149,8 +142,6 @@ export function LoginPage() {
               </div>
             )}
           </div>
-
-          {/* Password */}
           <div>
             <label style={{ display: 'block', fontSize: 11.5, color: t.muted, marginBottom: 6, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Password
@@ -185,8 +176,6 @@ export function LoginPage() {
               </div>
             )}
           </div>
-
-          {/* General error */}
           {errors.general && (
             <div style={{
               padding: '10px 14px', borderRadius: 9,
@@ -198,8 +187,6 @@ export function LoginPage() {
               {errors.general}
             </div>
           )}
-
-          {/* Submit */}
           <button
             className="btn-gold"
             onClick={submit}
@@ -209,7 +196,7 @@ export function LoginPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             }}
           >
-            {loading ? <><Spinner size={15} /> Signing in…</> : 'Sign In'}
+            {loading ? <><Spinner size={15} /> Signing inâ€¦</> : 'Sign In'}
           </button>
         </div>
 

@@ -67,24 +67,16 @@ export default function EmeraldLagoonHotelHomepage() {
       active = false;
     };
   }, []);
-
-  // Open chat and clear minimized state
   const openChat = () => {
     setIsChatMinimized(false);
     setIsChatOpen(true);
   };
-
-  // Minimize: keep session alive but collapse to pill
   const minimizeChat = () => {
     setIsChatMinimized(true);
   };
-
-  // Restore from minimized pill
   const restoreChat = () => {
     setIsChatMinimized(false);
   };
-
-  // Close: fully unmount
   const closeChat = () => {
     setIsChatOpen(false);
     setIsChatMinimized(false);
@@ -198,7 +190,6 @@ export default function EmeraldLagoonHotelHomepage() {
 
   return (
     <div className="min-h-screen bg-white text-stone-900">
-      {/* ── Navbar ── */}
       <header className="navbar-enter fixed top-0 z-50 w-full border-b border-yellow-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/admin" aria-label="Go to admin panel" className="inline-flex">
@@ -234,13 +225,15 @@ export default function EmeraldLagoonHotelHomepage() {
               )}
             </div>
           </div>
-          <button className="rounded-full bg-stone-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-stone-700">
+          <button
+            type="button"
+            onClick={openChat}
+            className="rounded-full bg-stone-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-stone-700"
+          >
             Book Now
           </button>
         </div>
       </header>
-
-      {/* ── Hero ── */}
       <section className={`hero-shell relative flex min-h-screen items-center justify-center overflow-hidden ${isChatOpen ? "hero-shell--chat-active" : ""}`}>
         {isChatOpen ? (
           <img src={bgImg} alt="Luxury room background" className="absolute inset-0 h-full w-full object-cover" />
@@ -272,8 +265,6 @@ export default function EmeraldLagoonHotelHomepage() {
               </div>
             )}
           </div>
-
-          {/* Chat panel — rendered (and kept alive) whenever isChatOpen, just hidden via CSS when minimized */}
           {isChatOpen && (
             <div className={`hero-chat-entry${isChatMinimized ? " hero-chat-entry--hidden" : ""}`}>
               <ChatInterface
@@ -284,8 +275,6 @@ export default function EmeraldLagoonHotelHomepage() {
           )}
         </div>
       </section>
-
-      {/* ── Floating minimized pill ── */}
       {isChatOpen && isChatMinimized && (
         <button
           type="button"
@@ -296,12 +285,9 @@ export default function EmeraldLagoonHotelHomepage() {
           <span className="chat-pill__dot" />
           <img src={favicon} alt="" className="chat-pill__icon" />
           <span className="chat-pill__label">Emerald Chat</span>
-          {/* Up chevron */}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="chat-pill__chevron">
             <path d="M18 15l-6-6-6 6" />
           </svg>
-
-          {/* Pill styles are injected inline so they work regardless of Tailwind purge */}
           <style>{`
             .chat-pill {
               position: fixed;
@@ -365,8 +351,6 @@ export default function EmeraldLagoonHotelHomepage() {
           `}</style>
         </button>
       )}
-
-      {/* ── About ── */}
       <section id="about" className="mx-auto max-w-7xl px-6 pb-16 pt-24 md:pb-20 md:pt-28">
         <div className="mx-auto mt-4 max-w-5xl text-center scroll-fade-up">
           <p className="mb-3 text-sm uppercase tracking-[0.2em] text-[#A88A49]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>About Us</p>
@@ -394,8 +378,6 @@ export default function EmeraldLagoonHotelHomepage() {
           ))}
         </div>
       </section>
-
-      {/* ── Rooms ── */}
       <section id="rooms" className="mx-auto max-w-7xl px-6 pt-24 pb-12">
         <div className="mb-12 flex flex-col items-center gap-4 text-center scroll-fade-up">
           <div className="max-w-5xl">
@@ -525,8 +507,6 @@ export default function EmeraldLagoonHotelHomepage() {
           </>
         )}
       </section>
-
-      {/* ── Experience ── */}
       <section id="offers" className="bg-white py-20 text-stone-900">
         <div className="mx-auto max-w-7xl px-6">
           <div className="flex flex-col gap-0 lg:flex-row lg:items-center">
@@ -575,8 +555,6 @@ export default function EmeraldLagoonHotelHomepage() {
           </div>
         </div>
       </section>
-
-      {/* ── Discover / Chatbot section ── */}
       <section id="chatbot" className="mx-auto max-w-7xl px-6 py-24">
         <div className="mb-12 text-center scroll-fade-up">
           <p className="mb-3 text-sm uppercase tracking-[0.3em] text-[#A88A49]" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>Discover Your Stay</p>
@@ -609,12 +587,10 @@ export default function EmeraldLagoonHotelHomepage() {
           </div>
         </div>
       </section>
-
-      {/* ── Footer ── */}
       <footer className="border-t border-yellow-200 bg-white px-6 py-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-2 text-center scroll-fade-up">
           <img src={logo} alt="Emerald Lagoon" className="h-10 w-auto" />
-          <p className="text-sm text-stone-900/55">© 2026 Emerald Lagoon</p>
+          <p className="text-sm text-stone-900/55">Â© 2026 Emerald Lagoon</p>
         </div>
       </footer>
     </div>

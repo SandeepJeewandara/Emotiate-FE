@@ -4,7 +4,6 @@ import {
   ResponsiveContainer, BarChart, Bar, Legend
 } from "recharts";
 
-// ─── Theme ────────────────────────────────────────────────────────────────────
 const G = {
   gold: "#C9A96E", goldLight: "#E8C87A", goldDark: "#A88A49",
   bg: "#060A17", sidebar: "#0A0E1F", card: "rgba(255,255,255,0.03)",
@@ -12,7 +11,6 @@ const G = {
   text: "#E8E4DC", muted: "rgba(232,228,220,0.5)", faint: "rgba(232,228,220,0.25)",
 };
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
 const DEMO_CREDS = [
   { username: "admin", password: "admin123", role: "ADMIN", firstName: "Admin" },
   { username: "staff", password: "staff123", role: "STAFF", firstName: "Staff" },
@@ -66,7 +64,6 @@ const ADDONS = ["BREAKFAST","LUNCH","DINNER","FULL_BOARD","SPA","POOL_ACCESS","A
 const USER_ROLES = ["ADMIN","STAFF","GUEST"];
 const BOOKING_STATUSES = ["PENDING","CONFIRMED","CANCELLED","NO_SHOW"];
 
-// ─── Global CSS ────────────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -195,10 +192,9 @@ const STYLES = `
   .err-msg{color:#f87171;font-size:12px;margin-top:4px;display:flex;align-items:center;gap:4px}
 `;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n) => new Intl.NumberFormat("en-LK").format(n);
-const fmtDate = (s) => s ? new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-const fmtTime = (s) => s ? new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "—";
+const fmtDate = (s) => s ? new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "â€”";
+const fmtTime = (s) => s ? new Date(s).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "â€”";
 const nextId = (arr) => Math.max(0, ...arr.map((x) => x.id)) + 1;
 
 function useBadge(val) {
@@ -211,7 +207,6 @@ function useBadge(val) {
   return `badge ${map[val] ?? "badge-inactive"}`;
 }
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
 const Ico = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
@@ -240,7 +235,6 @@ const ICONS = {
   img: "M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z",
 };
 
-// ─── Logo ─────────────────────────────────────────────────────────────────────
 function ELLogo({ size = 36, textSize = 16 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -258,7 +252,6 @@ function ELLogo({ size = 36, textSize = 16 }) {
   );
 }
 
-// ─── Notification ─────────────────────────────────────────────────────────────
 function Notif({ items, remove }) {
   return (
     <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -283,7 +276,6 @@ function useNotif() {
   return { items, push, remove };
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children, wide }) {
   return (
     <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -300,7 +292,6 @@ function Modal({ title, onClose, children, wide }) {
   );
 }
 
-// ─── Form field ───────────────────────────────────────────────────────────────
 function Field({ label, error, children, half }) {
   return (
     <div style={{ flex: half ? "1 1 45%" : "1 1 100%", minWidth: half ? 180 : "auto" }}>
@@ -311,7 +302,6 @@ function Field({ label, error, children, half }) {
   );
 }
 
-// ─── Confirm Dialog ───────────────────────────────────────────────────────────
 function Confirm({ msg, onConfirm, onCancel }) {
   return (
     <div className="overlay">
@@ -330,7 +320,6 @@ function Confirm({ msg, onConfirm, onCancel }) {
   );
 }
 
-// ─── Login Page ───────────────────────────────────────────────────────────────
 function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ username: "", password: "" });
   const [errors, setErrors] = useState({});
@@ -350,15 +339,15 @@ function LoginPage({ onLogin }) {
     if (Object.keys(e).length) return setErrors(e);
     setLoading(true);
     setTimeout(() => {
-      const user = DEMO_CREDS.find((u) => u.username === form.username && u.password === form.password);
-      if (user) onLogin(user);
+      const enteredUsername = form.username.trim();
+      const user = DEMO_CREDS.find((u) => u.username === enteredUsername && u.password === form.password);
+      if (user) onLogin({ ...user, username: enteredUsername, firstName: enteredUsername });
       else { setErrors({ password: "Invalid username or password" }); setLoading(false); }
     }, 700);
   };
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: G.bg, position: "relative", overflow: "hidden" }}>
-      {/* bg orbs */}
       <div style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(201,169,110,0.06) 0%, transparent 70%)", top: "10%", left: "15%", pointerEvents: "none" }} />
       <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.04) 0%, transparent 70%)", bottom: "15%", right: "10%", pointerEvents: "none" }} />
       <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(rgba(201,169,110,0.03) 1px, transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none" }} />
@@ -401,7 +390,7 @@ function LoginPage({ onLogin }) {
             {errors.password && <div className="err-msg"><Ico d={ICONS.alert} size={12} />{errors.password}</div>}
           </div>
           <button className="btn-gold" onClick={submit} disabled={loading} style={{ padding: "12px", marginTop: 6, borderRadius: 12, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {loading ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", animation: "spinSlow 0.7s linear infinite" }} /> Signing in…</> : "Sign In"}
+            {loading ? <><div style={{ width: 14, height: 14, border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000", borderRadius: "50%", animation: "spinSlow 0.7s linear infinite" }} /> Signing inâ€¦</> : "Sign In"}
           </button>
         </div>
 
@@ -417,9 +406,9 @@ function LoginPage({ onLogin }) {
   );
 }
 
-// ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ user, active, setActive, onLogout }) {
   const isAdmin = user.role === "ADMIN";
+  const profileName = user?.username || user?.firstName || "User";
   const sections = [
     { key: "dashboard", label: "Dashboard", icon: ICONS.dashboard },
     ...(isAdmin ? [{ key: "users", label: "User Management", icon: ICONS.users }] : []),
@@ -445,10 +434,10 @@ function Sidebar({ user, active, setActive, onLogout }) {
       <hr className="divider" style={{ margin: "12px 0" }} />
       <div style={{ padding: "10px 8px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(201,169,110,0.12)", border: `1px solid ${G.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 600, color: G.gold }}>
-          {user.firstName[0]}
+          {profileName[0]?.toUpperCase() || "?"}
         </div>
         <div style={{ flex: 1, overflow: "hidden" }}>
-          <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{user.firstName}</div>
+          <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profileName}</div>
           <div><span className={`badge badge-${user.role.toLowerCase()}`} style={{ fontSize: 10 }}>{user.role}</span></div>
         </div>
       </div>
@@ -459,7 +448,6 @@ function Sidebar({ user, active, setActive, onLogout }) {
   );
 }
 
-// ─── Page header ─────────────────────────────────────────────────────────────
 function PageHeader({ title, subtitle, action }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
@@ -472,7 +460,6 @@ function PageHeader({ title, subtitle, action }) {
   );
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ label, value, icon, sub, color, delay = "" }) {
   const c = color || G.gold;
   return (
@@ -489,9 +476,8 @@ function StatCard({ label, value, icon, sub, color, delay = "" }) {
   );
 }
 
-// ─── Calendar ─────────────────────────────────────────────────────────────────
 function BookingCalendar({ bookings }) {
-  const now = new Date(2026, 2); // March 2026
+  const now = new Date(2026, 2);
   const year = now.getFullYear(), month = now.getMonth();
   const days = new Date(year, month + 1, 0).getDate();
   const firstDow = new Date(year, month, 1).getDay();
@@ -535,7 +521,6 @@ function BookingCalendar({ bookings }) {
   );
 }
 
-// ─── Custom tooltip ───────────────────────────────────────────────────────────
 function ChartTip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
@@ -551,8 +536,7 @@ function ChartTip({ active, payload, label }) {
   );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-function Dashboard({ sessions, bookings, rooms, packages }) {
+function Dashboard({ user, sessions, bookings, rooms, packages }) {
   const totalSessions = sessions.length;
   const active = sessions.filter((s) => s.status === "ACTIVE").length;
   const completed = sessions.filter((s) => s.status === "COMPLETED").length;
@@ -563,7 +547,7 @@ function Dashboard({ sessions, bookings, rooms, packages }) {
   const revenue = bookings.filter((b) => b.status === "CONFIRMED").reduce((a, b) => a + b.totalPrice, 0);
   const convRate = totalSessions ? Math.round((completed / totalSessions) * 100) : 0;
   const guestSessions = totalSessions;
-  const avgResp = "3m 24s";
+  const avgResp = "3";
 
   const stats = [
     { label: "Guest Sessions", value: guestSessions, icon: ICONS.users, sub: "Total initiated sessions", delay: "d1" },
@@ -578,9 +562,11 @@ function Dashboard({ sessions, bookings, rooms, packages }) {
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Welcome back. Here's what's happening at Emerald Lagoon." />
+      <PageHeader
+        title="Welcome to Emerald Lagoon"
+        subtitle="Here's what's happening at Emerald Lagoon."
+      />
 
-      {/* Revenue + response time hero */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <div className="fu d1" style={{ background: "linear-gradient(135deg, rgba(201,169,110,0.12) 0%, rgba(168,138,73,0.06) 100%)", border: `1px solid rgba(201,169,110,0.25)`, borderRadius: 16, padding: "22px 24px" }}>
           <div style={{ fontSize: 12, color: G.muted, fontWeight: 500, marginBottom: 8, letterSpacing: "0.05em", textTransform: "uppercase" }}>Revenue from Completed Deals</div>
@@ -594,16 +580,14 @@ function Dashboard({ sessions, bookings, rooms, packages }) {
         </div>
       </div>
 
-      {/* Stats grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>
         {stats.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
-      {/* Chart + Calendar row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 16 }}>
         <div className="card fu d3" style={{ padding: "22px 24px" }}>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 500, color: G.goldLight, marginBottom: 6 }}>Customer Growth</div>
-          <div style={{ fontSize: 12, color: G.muted, marginBottom: 20 }}>Sessions vs Bookings — last 12 months</div>
+          <div style={{ fontSize: 12, color: G.muted, marginBottom: 20 }}>Sessions vs Bookings â€” last 12 months</div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={CHART_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
@@ -631,7 +615,6 @@ function Dashboard({ sessions, bookings, rooms, packages }) {
         </div>
       </div>
 
-      {/* Recent sessions */}
       <div className="card fu d5" style={{ marginTop: 16, padding: "20px 24px" }}>
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 17, fontWeight: 500, color: G.goldLight, marginBottom: 16 }}>Recent Active Sessions</div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -660,11 +643,10 @@ function Dashboard({ sessions, bookings, rooms, packages }) {
   );
 }
 
-// ─── User Management ──────────────────────────────────────────────────────────
 function UserManagement({ users, setUsers, notify }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
-  const [modal, setModal] = useState(null); // null | {mode, data}
+  const [modal, setModal] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const [form, setForm] = useState({});
   const [errs, setErrs] = useState({});
@@ -724,7 +706,7 @@ function UserManagement({ users, setUsers, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, alignItems: "center" }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search users…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search usersâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ADMIN", "STAFF", "GUEST"].map((r) => (
           <button key={r} className={`tab-btn ${filter === r ? "active" : ""}`} onClick={() => setFilter(r)}>{r}</button>
@@ -746,7 +728,7 @@ function UserManagement({ users, setUsers, notify }) {
                 <td style={{ padding: "12px 16px", fontWeight: 500 }}>{u.firstName} {u.lastName}</td>
                 <td style={{ padding: "12px 16px", color: G.gold, fontFamily: "monospace", fontSize: 12.5 }}>@{u.username}</td>
                 <td style={{ padding: "12px 16px", color: G.muted }}>{u.email}</td>
-                <td style={{ padding: "12px 16px", color: G.muted }}>{u.phoneNumber || "—"}</td>
+                <td style={{ padding: "12px 16px", color: G.muted }}>{u.phoneNumber || "â€”"}</td>
                 <td style={{ padding: "12px 16px" }}><span className={`badge badge-${u.role.toLowerCase()}`}>{u.role}</span></td>
                 <td style={{ padding: "12px 16px" }}><span className={`badge ${u.isActive ? "badge-active" : "badge-inactive"}`}>{u.isActive ? "Active" : "Inactive"}</span></td>
                 <td style={{ padding: "12px 16px" }}>
@@ -795,7 +777,6 @@ function UserManagement({ users, setUsers, notify }) {
   );
 }
 
-// ─── Room Management ──────────────────────────────────────────────────────────
 function RoomManagement({ rooms, setRooms, notify }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -814,9 +795,9 @@ function RoomManagement({ rooms, setRooms, notify }) {
   const validate = () => {
     const e = {};
     if (!form.roomNumber?.trim()) e.roomNumber = "Required";
-    if (!form.floor || form.floor < 1) e.floor = "Must be ≥ 1";
+    if (!form.floor || form.floor < 1) e.floor = "Must be â‰¥ 1";
     if (!form.roomType) e.roomType = "Required";
-    if (!form.maxOccupancy || form.maxOccupancy < 1) e.maxOccupancy = "Must be ≥ 1";
+    if (!form.maxOccupancy || form.maxOccupancy < 1) e.maxOccupancy = "Must be â‰¥ 1";
     return e;
   };
 
@@ -846,7 +827,7 @@ function RoomManagement({ rooms, setRooms, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search rooms…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search roomsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", ...ROOM_TYPES].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -919,7 +900,6 @@ function RoomManagement({ rooms, setRooms, notify }) {
   );
 }
 
-// ─── Package Management ────────────────────────────────────────────────────────
 function PackageManagement({ packages, setPackages, rooms, notify }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -942,7 +922,7 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
     if (!form.roomId) e.roomId = "Select a room";
     if (!form.lowerBoundPrice || +form.lowerBoundPrice < 1) e.lowerBoundPrice = "Required";
     if (!form.upperBoundPrice || +form.upperBoundPrice < 1) e.upperBoundPrice = "Required";
-    if (+form.upperBoundPrice < +form.lowerBoundPrice) e.upperBoundPrice = "Must be ≥ lower bound";
+    if (+form.upperBoundPrice < +form.lowerBoundPrice) e.upperBoundPrice = "Must be â‰¥ lower bound";
     if (!form.maxOccupancy || +form.maxOccupancy < 1) e.maxOccupancy = "Required";
     return e;
   };
@@ -969,7 +949,7 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search packages…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search packagesâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", ...ROOM_TYPES].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -999,7 +979,7 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
                 <span style={{ fontSize: 11.5, color: G.muted }}>Room {p.roomNumber}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ fontSize: 13, color: G.text, fontWeight: 600 }}>LKR {fmt(p.lowerBoundPrice)} – {fmt(p.upperBoundPrice)}</div>
+                <div style={{ fontSize: 13, color: G.text, fontWeight: 600 }}>LKR {fmt(p.lowerBoundPrice)} â€“ {fmt(p.upperBoundPrice)}</div>
                 <div style={{ fontSize: 12, color: G.muted }}>Max {p.maxOccupancy} guests</div>
               </div>
               {p.addOns.length > 0 && (
@@ -1019,7 +999,6 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
         {!filtered.length && <div style={{ gridColumn: "1/-1", padding: 48, textAlign: "center", color: G.muted }}>No packages found</div>}
       </div>
 
-      {/* View modal */}
       {viewPkg && (
         <Modal title={viewPkg.name} onClose={() => setViewPkg(null)} wide>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
@@ -1029,8 +1008,8 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[
-                ["Room", `${viewPkg.roomType} — #${viewPkg.roomNumber}`],
-                ["Price Range", `LKR ${fmt(viewPkg.lowerBoundPrice)} – ${fmt(viewPkg.upperBoundPrice)}`],
+                ["Room", `${viewPkg.roomType} â€” #${viewPkg.roomNumber}`],
+                ["Price Range", `LKR ${fmt(viewPkg.lowerBoundPrice)} â€“ ${fmt(viewPkg.upperBoundPrice)}`],
                 ["Max Occupancy", `${viewPkg.maxOccupancy} guests`],
                 ["Status", viewPkg.isActive ? "Active" : "Inactive"],
               ].map(([k, v]) => (
@@ -1051,7 +1030,6 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
         </Modal>
       )}
 
-      {/* Add/Edit modal */}
       {modal && (
         <Modal title={modal.mode === "add" ? "Add New Package" : "Edit Package"} onClose={() => setModal(null)} wide>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
@@ -1062,14 +1040,14 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
             <Field label="Room *" half error={errs.roomId}>
               <select className="input" value={form.roomId || ""} onChange={(e) => sf("roomId", e.target.value)}>
                 <option value="">Select room</option>
-                {rooms.filter((r) => r.isActive).map((r) => <option key={r.id} value={r.id}>#{r.roomNumber} — {r.roomType}</option>)}
+                {rooms.filter((r) => r.isActive).map((r) => <option key={r.id} value={r.id}>#{r.roomNumber} â€” {r.roomType}</option>)}
               </select>
             </Field>
             <Field label="Max Occupancy *" half error={errs.maxOccupancy}><input className="input" type="number" min="1" value={form.maxOccupancy || ""} onChange={(e) => sf("maxOccupancy", e.target.value)} /></Field>
             <Field label="Lower Bound Price (LKR) *" half error={errs.lowerBoundPrice}><input className="input" type="number" min="0" value={form.lowerBoundPrice || ""} onChange={(e) => sf("lowerBoundPrice", e.target.value)} /></Field>
             <Field label="Upper Bound Price (LKR) *" half error={errs.upperBoundPrice}><input className="input" type="number" min="0" value={form.upperBoundPrice || ""} onChange={(e) => sf("upperBoundPrice", e.target.value)} /></Field>
             <Field label="Image URL">
-              <input className="input" placeholder="https://…" value={form.imageUrl || ""} onChange={(e) => sf("imageUrl", e.target.value)} />
+              <input className="input" placeholder="https://â€¦" value={form.imageUrl || ""} onChange={(e) => sf("imageUrl", e.target.value)} />
               {form.imageUrl && <img src={form.imageUrl} alt="" style={{ marginTop: 8, height: 80, borderRadius: 8, objectFit: "cover", width: "100%", border: `1px solid ${G.border}` }} onError={(e) => e.target.style.display = "none"} />}
             </Field>
             <Field label="Add-ons">
@@ -1104,7 +1082,6 @@ function PackageManagement({ packages, setPackages, rooms, notify }) {
   );
 }
 
-// ─── Session Management ────────────────────────────────────────────────────────
 function SessionManagement({ sessions, setSessions, notify }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -1137,7 +1114,7 @@ function SessionManagement({ sessions, setSessions, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search sessions…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search sessionsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         {["ALL", "ACTIVE", "COMPLETED", "ABORTED"].map((f) => (
           <button key={f} className={`tab-btn ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
@@ -1159,7 +1136,7 @@ function SessionManagement({ sessions, setSessions, notify }) {
                 <td style={{ padding: "12px 14px", color: G.gold, fontFamily: "monospace", fontSize: 12 }}>{s.sessionId}</td>
                 <td style={{ padding: "12px 14px", fontWeight: 500 }}>{s.guestName}</td>
                 <td style={{ padding: "12px 14px", color: G.muted }}>#{s.currentRound}</td>
-                <td style={{ padding: "12px 14px", color: "#4ade80", fontWeight: 500 }}>{s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : "—"}</td>
+                <td style={{ padding: "12px 14px", color: "#4ade80", fontWeight: 500 }}>{s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : "â€”"}</td>
                 <td style={{ padding: "12px 14px", color: G.muted, fontSize: 12 }}>{fmtDate(s.startedAt)}<br />{fmtTime(s.startedAt)}</td>
                 <td style={{ padding: "12px 14px", color: G.muted, fontSize: 12 }}>{fmtTime(s.updatedAt)}</td>
                 <td style={{ padding: "12px 14px" }}>
@@ -1187,7 +1164,6 @@ function SessionManagement({ sessions, setSessions, notify }) {
   );
 }
 
-// ─── Booking Management ────────────────────────────────────────────────────────
 function BookingManagement({ bookings, setBookings, notify }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("ALL");
@@ -1224,7 +1200,7 @@ function BookingManagement({ bookings, setBookings, notify }) {
       <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
         <div style={{ position: "relative", flex: 1 }}>
           <div style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: G.muted }}><Ico d={ICONS.search} size={14} /></div>
-          <input className="search" placeholder="Search bookings…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
+          <input className="search" placeholder="Search bookingsâ€¦" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: "100%" }} />
         </div>
         <button className={`tab-btn ${filter === "ALL" ? "active" : ""}`} onClick={() => setFilter("ALL")}>ALL</button>
       </div>
@@ -1243,7 +1219,7 @@ function BookingManagement({ bookings, setBookings, notify }) {
               <tr key={b.id} className={`tr-hover fu d${Math.min(i + 1, 8)}`} style={{ borderBottom: `1px solid rgba(201,169,110,0.06)` }}>
                 <td style={{ padding: "12px 14px", color: G.gold, fontFamily: "monospace", fontSize: 12, whiteSpace: "nowrap" }}>{b.reference}</td>
                 <td style={{ padding: "12px 14px", fontWeight: 500 }}>#{b.roomNumber}</td>
-                <td style={{ padding: "12px 14px", color: G.muted, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.packageName || "—"}</td>
+                <td style={{ padding: "12px 14px", color: G.muted, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{b.packageName || "â€”"}</td>
                 <td style={{ padding: "12px 14px", color: G.muted, whiteSpace: "nowrap" }}>{fmtDate(b.checkInDate)}</td>
                 <td style={{ padding: "12px 14px", color: G.muted, whiteSpace: "nowrap" }}>{fmtDate(b.checkOutDate)}</td>
                 <td style={{ padding: "12px 14px" }}>{b.totalNights}n</td>
@@ -1263,19 +1239,19 @@ function BookingManagement({ bookings, setBookings, notify }) {
       </div>
 
       {detail && (
-        <Modal title={`Booking — ${detail.reference}`} onClose={() => setDetail(null)}>
+        <Modal title={`Booking â€” ${detail.reference}`} onClose={() => setDetail(null)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
               ["Reference", detail.reference],
               ["Room", `#${detail.roomNumber}`],
-              ["Package", detail.packageName || "—"],
+              ["Package", detail.packageName || "â€”"],
               ["Check-in", fmtDate(detail.checkInDate)],
               ["Check-out", fmtDate(detail.checkOutDate)],
               ["Nights", detail.totalNights],
-              ["Guests", detail.guestCount || "—"],
+              ["Guests", detail.guestCount || "â€”"],
               ["Price/Night", `LKR ${fmt(detail.offeredPricePerNight)}`],
               ["Total Price", `LKR ${fmt(detail.totalPrice)}`],
-              ["Session ID", detail.sessionId || "—"],
+              ["Session ID", detail.sessionId || "â€”"],
               ["Created", fmtDate(detail.createdAt)],
             ].map(([k, v]) => (
               <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${G.border}` }}>
@@ -1300,7 +1276,6 @@ function BookingManagement({ bookings, setBookings, notify }) {
   );
 }
 
-// ─── App Root ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [tab, setTab] = useState("dashboard");
@@ -1322,7 +1297,7 @@ export default function App() {
   const notify = (msg, type = "success") => notif.push(msg, type);
 
   const renderTab = () => {
-    if (tab === "dashboard") return <Dashboard sessions={sessions} bookings={bookings} rooms={rooms} packages={packages} />;
+    if (tab === "dashboard") return <Dashboard user={currentUser} sessions={sessions} bookings={bookings} rooms={rooms} packages={packages} />;
     if (tab === "users" && currentUser?.role === "ADMIN") return <UserManagement users={users} setUsers={setUsers} notify={notify} />;
     if (tab === "rooms") return <RoomManagement rooms={rooms} setRooms={setRooms} notify={notify} />;
     if (tab === "packages") return <PackageManagement packages={packages} setPackages={setPackages} rooms={rooms} notify={notify} />;

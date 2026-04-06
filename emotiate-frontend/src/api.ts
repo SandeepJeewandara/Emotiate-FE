@@ -10,12 +10,10 @@ import type {
   ResponseTimeStatsDto,
 } from './types';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 export const BASE_URL =
   (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL ||
   'http://localhost:8080';
 
-// ─── Token helpers ────────────────────────────────────────────────────────────
 export function getToken(): string | null  { return localStorage.getItem('el_token'); }
 export function setToken(t: string): void  { localStorage.setItem('el_token', t); }
 export function clearToken(): void         { localStorage.removeItem('el_token'); }
@@ -30,7 +28,6 @@ export class ApiError extends Error {
   }
 }
 
-// ─── Core fetch wrapper ───────────────────────────────────────────────────────
 async function req<T>(
   path: string,
   options: RequestInit = {},
@@ -61,13 +58,11 @@ const put  = <T>(path: string, data: unknown) =>
   req<T>(path, { method: 'PUT', body: JSON.stringify(data) });
 const del  = <T>(path: string) => req<T>(path, { method: 'DELETE' });
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   login:  (dto: LoginRequestDto)  => post<AuthResponseDto>('/api/auth/login',  dto, false),
   logout: (dto: LogoutRequestDto) => post<null>('/api/auth/logout', dto),
 };
 
-// ─── User  (Admin only) ───────────────────────────────────────────────────────
 export const userApi = {
   getAll:   (params?: { isActive?: boolean; role?: string }) => {
     const qs = new URLSearchParams();
@@ -81,7 +76,6 @@ export const userApi = {
   remove: (id: number)                              => del<null>(`/api/user/remove/${id}`),
 };
 
-// ─── Room ─────────────────────────────────────────────────────────────────────
 export const roomApi = {
   getAll: (params?: { isActive?: boolean; roomType?: string; floor?: number }) => {
     const qs = new URLSearchParams();
@@ -96,7 +90,6 @@ export const roomApi = {
   remove: (id: number)                            => del<null>(`/api/room/remove/${id}`),
 };
 
-// ─── Package ──────────────────────────────────────────────────────────────────
 export const packageApi = {
   getAll: (params?: { isActive?: boolean; roomType?: string }) => {
     const qs = new URLSearchParams();
@@ -111,13 +104,11 @@ export const packageApi = {
   remove:  (id: number)                               => del<null>(`/api/package/remove/${id}`),
 };
 
-// ─── Booking ──────────────────────────────────────────────────────────────────
 export const bookingApi = {
   getAll:  ()          => get<BookingResponseDto[]>('/api/booking/get'),
   remove:  (id: number) => del<null>(`/api/booking/remove/${id}`),
 };
 
-// ─── Chat / Negotiation ───────────────────────────────────────────────────────
 export const chatApi = {
   startSession:   (dto: StartSessionRequestDto)                  => post<NegotiationSessionResponseDto>('/api/chat/session/start', dto, false),
   sendMessage:    (dto: SendMessageRequestDto)                   => post<ChatMessageResponseDto>('/api/chat/session/message', dto, false),
@@ -131,7 +122,6 @@ export const chatApi = {
   completeSession:(sessionId: string)                            => put<NegotiationSessionResponseDto>(`/api/chat/session/${sessionId}/complete`, {}),
 };
 
-// ─── Emotion ──────────────────────────────────────────────────────────────────
 export const emotionApi = {
   detect: (userMessage: string) => post<EmotionResultDto>('/api/emotion/detect', { userMessage }, false),
 };

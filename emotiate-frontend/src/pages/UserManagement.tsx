@@ -11,23 +11,22 @@ import type { UserResponseDto, UserAddRequestDto, UserUpdateRequestDto } from '.
 
 type UserRole = 'ADMIN' | 'STAFF' | 'GUEST';
 
-// Extended local type (the API returns minimal, we need more for display)
 interface LocalUser extends UserResponseDto {
-  lastName?:    string;
+  lastName?: string;
   phoneNumber?: string;
-  role?:        UserRole;
-  isActive?:    boolean;
+  role?: UserRole;
+  isActive?: boolean;
 }
 
 interface FormState {
-  firstName:   string;
-  lastName:    string;
-  username:    string;
-  email:       string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
   phoneNumber: string;
-  password:    string;
-  role:        string;
-  isActive:    boolean;
+  password: string;
+  role: string;
+  isActive: boolean;
 }
 
 interface Errors { [k: string]: string | undefined; }
@@ -74,8 +73,14 @@ function toLocalUser(rawUser: unknown): LocalUser {
 }
 
 const blank = (): FormState => ({
-  firstName: '', lastName: '', username: '', email: '',
-  phoneNumber: '', password: '', role: 'GUEST', isActive: true,
+  firstName: '',
+  lastName: '',
+  username: '',
+  email: '',
+  phoneNumber: '',
+  password: '',
+  role: 'GUEST',
+  isActive: true,
 });
 
 export function UserManagement() {
@@ -83,16 +88,16 @@ export function UserManagement() {
   const { logout } = useAuth();
   const notif = useNotif();
 
-  const [users,   setUsers]   = useState<LocalUser[]>([]);
+  const [users, setUsers] = useState<LocalUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search,  setSearch]  = useState('');
-  const [filter,  setFilter]  = useState<'ALL' | UserRole>('ALL');
-  const [modal,   setModal]   = useState<'add' | 'edit' | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'ALL' | UserRole>('ALL');
+  const [modal, setModal] = useState<'add' | 'edit' | null>(null);
   const [confirm, setConfirm] = useState<number | null>(null);
-  const [editId,  setEditId]  = useState<number | null>(null);
-  const [form,    setForm]    = useState<FormState>(blank());
-  const [errs,    setErrs]    = useState<Errors>({});
-  const [saving,  setSaving]  = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState<FormState>(blank());
+  const [errs, setErrs] = useState<Errors>({});
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,20 +110,27 @@ export function UserManagement() {
         return;
       }
       notif.push(e instanceof Error ? e.message : 'Failed to load users', 'error');
-    } finally { setLoading(false); }
-  }, []); // eslint-disable-line
+    } finally {
+      setLoading(false);
+    }
+  }, [logout, notif.push]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = users.filter((u) => {
     if (!u.isActive) return false;
     const q = search.toLowerCase();
-    const ms = u.firstName.toLowerCase().includes(q)
+    const matchesSearch = u.firstName.toLowerCase().includes(q)
       || u.username.toLowerCase().includes(q)
       || u.email.toLowerCase().includes(q);
-    const mf = filter === 'ALL' || u.role === filter;
-    return ms && mf;
+    const matchesFilter = filter === 'ALL' || u.role === filter;
+    return matchesSearch && matchesFilter;
   });
+
+  const activeUsers = users.filter((u) => u.isActive).length;
+  const adminUsers = users.filter((u) => u.isActive && u.role === 'ADMIN').length;
+  const staffUsers = users.filter((u) => u.isActive && u.role === 'STAFF').length;
+  const guestUsers = users.filter((u) => u.isActive && u.role === 'GUEST').length;
 
   const sf = (k: keyof FormState, v: string | boolean) => {
     setForm((p) => ({ ...p, [k]: v }));
@@ -128,9 +140,9 @@ export function UserManagement() {
   const validate = (): Errors => {
     const e: Errors = {};
     if (!form.firstName.trim()) e.firstName = 'Required';
-    if (!form.username.trim())  e.username  = 'Required';
+    if (!form.username.trim()) e.username = 'Required';
     else if (!/^[a-z0-9._]+$/.test(form.username)) e.username = 'Lowercase, digits, . _ only';
-    if (!form.email.trim())     e.email     = 'Required';
+    if (!form.email.trim()) e.email = 'Required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Invalid email';
     if (modal === 'add' && !form.password) e.password = 'Required';
     if (modal === 'add' && form.password && form.password.length < 6) e.password = 'Min 6 characters';
@@ -138,20 +150,35 @@ export function UserManagement() {
     return e;
   };
 
-  const openAdd = () => { setForm(blank()); setErrs({}); setModal('add'); };
+  const openAdd = () => {
+    setForm(blank());
+    setErrs({});
+    setModal('add');
+  };
+
   const openEdit = (u: LocalUser) => {
     setForm({
-      firstName: u.firstName, lastName: u.lastName ?? '',
-      username: u.username, email: u.email,
-      phoneNumber: u.phoneNumber ?? '', password: '',
-      role: normalizeRole(u.role), isActive: u.isActive ?? true,
+      firstName: u.firstName,
+      lastName: u.lastName ?? '',
+      username: u.username,
+      email: u.email,
+      phoneNumber: u.phoneNumber ?? '',
+      password: '',
+      role: normalizeRole(u.role),
+      isActive: u.isActive ?? true,
     });
-    setEditId(u.id); setErrs({}); setModal('edit');
+    setEditId(u.id);
+    setErrs({});
+    setModal('edit');
   };
 
   const save = async () => {
     const e = validate();
-    if (Object.keys(e).length) return setErrs(e);
+    if (Object.keys(e).length) {
+      setErrs(e);
+      return;
+    }
+
     setSaving(true);
     try {
       if (modal === 'add') {
@@ -161,17 +188,17 @@ export function UserManagement() {
         notif.push('User created successfully');
       } else if (editId !== null) {
         const dto: UserUpdateRequestDto = {
-          firstName:   form.firstName || undefined,
-          lastName:    form.lastName  || undefined,
-          username:    form.username  || undefined,
-          email:       form.email     || undefined,
+          firstName: form.firstName || undefined,
+          lastName: form.lastName || undefined,
+          username: form.username || undefined,
+          email: form.email || undefined,
           phoneNumber: form.phoneNumber || undefined,
-          password:    form.password  || undefined,
-          role:        form.role      || undefined,
-          isActive:    form.isActive,
+          password: form.password || undefined,
+          role: form.role || undefined,
+          isActive: form.isActive,
         };
         const updated = await userApi.edit(editId, dto);
-        setUsers((p) => p.map((u) => u.id === editId ? toLocalUser({ ...u, ...updated }) : u));
+        setUsers((p) => p.map((u) => (u.id === editId ? toLocalUser({ ...u, ...updated }) : u)));
         notif.push('User updated');
       }
       setModal(null);
@@ -181,13 +208,15 @@ export function UserManagement() {
         return;
       }
       notif.push(err instanceof Error ? err.message : 'Save failed', 'error');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id: number) => {
     try {
       await userApi.remove(id);
-      setUsers((p) => p.map((u) => u.id === id ? { ...u, isActive: false } : u));
+      setUsers((p) => p.map((u) => (u.id === id ? { ...u, isActive: false } : u)));
       notif.push('User deactivated', 'info');
     } catch (err: unknown) {
       if (isUnauthorizedError(err)) {
@@ -205,7 +234,8 @@ export function UserManagement() {
 
       <PageHeader
         title="User Management"
-        subtitle="Manage system accounts. Accessible by admins only."
+        subtitle="Manage system accounts, role distribution, and access status for the admin workspace."
+        eyebrow="Admin Access"
         action={
           <button className="btn-gold" style={{ padding: '9px 18px', display: 'flex', alignItems: 'center', gap: 7 }} onClick={openAdd}>
             <Ico d={IC.plus} size={14} /> Add User
@@ -213,27 +243,53 @@ export function UserManagement() {
         }
       />
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.muted, pointerEvents: 'none' }}>
+      <section className="metric-strip">
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Admins</div>
+          <div className="metric-strip__value">{adminUsers}</div>
+          <div className="metric-strip__sub">Highest-permission accounts</div>
+        </article>
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Staff</div>
+          <div className="metric-strip__value">{staffUsers}</div>
+          <div className="metric-strip__sub">Operational team members</div>
+        </article>
+        <article className="metric-strip__item">
+          <div className="metric-strip__label">Guests</div>
+          <div className="metric-strip__value">{guestUsers}</div>
+          <div className="metric-strip__sub">Guest-facing accounts</div>
+        </article>
+      </section>
+
+      <div className="page-toolbar">
+        <div className="page-toolbar__search">
+          <div className="page-toolbar__search-icon">
             <Ico d={IC.search} size={14} />
           </div>
           <input
             className="el-search"
-            placeholder="Search name, username, email…"
+            placeholder="Search name, username, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: '100%' }}
           />
         </div>
-        {(['ALL', ...ROLES] as const).map((r) => (
-          <button key={r} className={`tab-btn ${filter === r ? 'active' : ''}`} onClick={() => setFilter(r)}>{r}</button>
-        ))}
+        <div className="page-toolbar__filters">
+          {(['ALL', ...ROLES] as const).map((r) => (
+            <button key={r} className={`tab-btn ${filter === r ? 'active' : ''}`} onClick={() => setFilter(r)}>{r}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="el-card" style={{ overflow: 'hidden' }}>
+      <section className="el-card content-card">
+        <div className="content-card__head">
+          <div>
+            <h3>Account Directory</h3>
+            <p>Review active accounts, contact details, and permission levels at a glance.</p>
+          </div>
+          <span className="content-card__pill">{filtered.length} records</span>
+        </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table className="el-table">
             <thead>
@@ -250,21 +306,29 @@ export function UserManagement() {
                 filtered.map((u, i) => (
                   <tr key={u.id} className={`anim-fade-up delay-${Math.min(i + 1, 8) as 1}`}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{
-                          width: 30, height: 30, borderRadius: '50%',
-                          background: `${t.gold}18`, border: `1px solid ${t.border}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700, color: t.gold, flexShrink: 0,
+                          width: 34,
+                          height: 34,
+                          borderRadius: '50%',
+                          background: `${t.gold}18`,
+                          border: `1px solid ${t.border}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: t.gold,
+                          flexShrink: 0,
                         }}>
                           {u.firstName[0]}
                         </div>
-                        <span style={{ fontWeight: 500 }}>{u.firstName} {u.lastName}</span>
+                        <span style={{ fontWeight: 600 }}>{u.firstName} {u.lastName}</span>
                       </div>
                     </td>
                     <td style={{ color: t.gold, fontFamily: 'monospace', fontSize: 12.5 }}>@{u.username}</td>
                     <td style={{ color: t.muted }}>{u.email}</td>
-                    <td style={{ color: t.muted }}>{u.phoneNumber || '—'}</td>
+                    <td style={{ color: t.muted }}>{u.phoneNumber || '-'}</td>
                     <td><StatusBadge value={u.role ?? 'GUEST'} /></td>
                     <td><StatusBadge value={String(u.isActive ?? true)} /></td>
                     <td>
@@ -283,9 +347,8 @@ export function UserManagement() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* Add / Edit Modal */}
       {modal && (
         <Modal title={modal === 'add' ? 'Add New User' : 'Edit User'} onClose={() => setModal(null)}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14 }}>
@@ -323,7 +386,7 @@ export function UserManagement() {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
             <button className="btn-ghost" style={{ padding: '9px 20px' }} onClick={() => setModal(null)}>Cancel</button>
             <button className="btn-gold" style={{ padding: '9px 24px', display: 'flex', alignItems: 'center', gap: 7 }} onClick={save} disabled={saving}>
-              {saving ? <><Spinner size={13} /> Saving…</> : modal === 'add' ? 'Add User' : 'Save Changes'}
+              {saving ? <><Spinner size={13} /> Saving...</> : modal === 'add' ? 'Add User' : 'Save Changes'}
             </button>
           </div>
         </Modal>

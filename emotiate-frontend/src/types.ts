@@ -1,4 +1,3 @@
-// ─── Enums ────────────────────────────────────────────────────────────────────
 export type UserRole    = 'ADMIN' | 'STAFF' | 'GUEST';
 export type RoomType    = 'SINGLE' | 'DOUBLE' | 'DELUXE' | 'SUITE' | 'FAMILY';
 export type PackageAddOn =
@@ -11,14 +10,12 @@ export type MessageType    = 'TEXT' | 'PACKAGE_CARD' | 'OPTION_BUTTONS' | 'SYSTE
 export type EmotionState   =
   | 'FRUSTRATED' | 'HESITANT' | 'NEUTRAL' | 'INTERESTED' | 'SATISFIED' | 'EXCITED';
 
-// ─── Generic wrapper ──────────────────────────────────────────────────────────
 export interface ApiResponse<T> {
   data:    T;
   message: string;
   status:  number;
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
 export interface LoginRequestDto   { username: string; password: string; }
 export interface LogoutRequestDto  { username: string; }
 export interface AuthResponseDto   {
@@ -28,10 +25,8 @@ export interface AuthResponseDto   {
   role:     UserRole;
 }
 
-// Local session user (enriched after login)
 export interface AuthUser extends AuthResponseDto { firstName: string; }
 
-// ─── User ─────────────────────────────────────────────────────────────────────
 export interface UserResponseDto {
   id:        number;
   firstName: string;
@@ -58,7 +53,6 @@ export interface UserUpdateRequestDto {
   isActive?:    boolean;
 }
 
-// ─── Room ─────────────────────────────────────────────────────────────────────
 export interface RoomResponseDto {
   id:           number;
   roomNumber:   string;
@@ -79,7 +73,6 @@ export interface RoomUpdateRequestDto extends Partial<RoomAddRequestDto> {
   isActive?: boolean;
 }
 
-// ─── Package ──────────────────────────────────────────────────────────────────
 export interface PackageResponseDto {
   id:              number;
   name:            string;
@@ -108,7 +101,6 @@ export interface PackageUpdateRequestDto extends Partial<PackageAddRequestDto> {
   isActive?: boolean;
 }
 
-// ─── Booking ──────────────────────────────────────────────────────────────────
 export interface BookingResponseDto {
   id:                  number;
   reference:           string;
@@ -129,7 +121,6 @@ export interface BookingResponseDto {
   message:             string;
 }
 
-// ─── Chat / Negotiation ───────────────────────────────────────────────────────
 export interface NegotiationSessionResponseDto {
   id:                   number;
   sessionId:            string;
@@ -161,7 +152,6 @@ export interface ResponseTimeStatsDto {
 export interface StartSessionRequestDto  { guestName: string; initialMessage: string; }
 export interface SendMessageRequestDto   { sessionId: string; message: string; }
 
-// ─── Emotion ──────────────────────────────────────────────────────────────────
 export interface EmotionResultDto {
   emotion:    EmotionState;
   confidence: number;

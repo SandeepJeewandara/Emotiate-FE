@@ -12,19 +12,14 @@ import { PackageManagement }       from './pages/PackageManagement';
 import { SessionManagement }       from './pages/SessionManagement';
 import { BookingManagement }       from './pages/BookingManagement';
 
-// ─── Inner layout (needs auth + theme context) ────────────────────────────────
 function AppLayout() {
   const { user }    = useAuth();
   const { t, mode } = useTheme();
   const [tab, setTab] = useState<PageKey>('dashboard');
   const rootRef = useRef<HTMLDivElement>(null);
-
-  // Sync data-theme on .admin-root so scoped CSS variables respond to toggle
   useEffect(() => {
     if (rootRef.current) rootRef.current.setAttribute('data-theme', mode);
   }, [mode]);
-
-  // Guard: redirect non-admins away from user management
   useEffect(() => {
     if (tab === 'users' && user?.role !== 'ADMIN') setTab('dashboard');
   }, [tab, user?.role]);
@@ -44,19 +39,18 @@ function AppLayout() {
   };
 
   return (
-    // admin-root scopes all admin CSS classes — does not affect Home page
     <div ref={rootRef} className="admin-root" style={{ display: 'flex', minHeight: '100vh', background: t.bg }}>
       <Sidebar active={tab} setActive={setTab} />
 
       <main
         key={tab}
-        className="anim-fade-in"
-        style={{ flex: 1, padding: '30px 34px', overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}
+        className="admin-main anim-fade-in"
+        style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minWidth: 0 }}
       >
-        {renderPage()}
+        <div className="admin-panel">
+          {renderPage()}
+        </div>
       </main>
-
-      {/* Dot-grid texture */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
         backgroundImage: `radial-gradient(${mode === 'dark' ? 'rgba(196,162,99,0.025)' : 'rgba(154,114,48,0.04)'} 1px, transparent 1px)`,

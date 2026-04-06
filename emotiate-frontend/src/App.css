@@ -454,8 +454,6 @@ body {
   animation: iconFloat 1.8s ease-in-out infinite;
   transform: scale(1.05);
 }
-
-/* ── Scroll-triggered animations ── */
 .scroll-fade-up {
   opacity: 0;
   transform: translateY(44px);

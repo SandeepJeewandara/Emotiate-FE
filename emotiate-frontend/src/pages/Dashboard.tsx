@@ -1,13 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
-} from 'recharts';
 import { chatApi, bookingApi, roomApi, packageApi } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import {
-  PageHeader, StatCard, ChartTip, Spinner, fmt, fmtDate, fmtTime,
+  PageHeader, StatCard, Spinner, fmt, fmtDate, fmtTime,
   Ico, IC, StatusBadge,
 } from '../components/Shared';
 import type {
@@ -17,25 +13,6 @@ import type {
   PackageResponseDto,
   ResponseTimeStatsDto,
 } from '../types';
-
-// Generate day-wise mock data (last 30 days)
-function buildDayData(bookings: BookingResponseDto[], sessions: NegotiationSessionResponseDto[]) {
-  const today = new Date(2026, 2, 19);
-  return Array.from({ length: 30 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (29 - i));
-    const label = `${d.getDate()}/${d.getMonth() + 1}`;
-    const ds = d.toISOString().slice(0, 10);
-    const sess = sessions.filter((s) => s.startedAt?.startsWith(ds)).length;
-    const book = bookings.filter((b) => b.createdAt?.startsWith(ds)).length;
-    const seed = (d.getDate() * 7 + d.getMonth() * 3) % 8;
-    return {
-      day: label,
-      sessions: sess + seed,
-      bookings: book + Math.max(0, seed - 3),
-    };
-  });
-}
 
 function formatResponseTime(ms: number) {
   if (!Number.isFinite(ms) || ms <= 0) return '0s';
@@ -48,7 +25,6 @@ function formatResponseTime(ms: number) {
   return `${minutes}m ${seconds}s`;
 }
 
-// Booking calendar (March 2026)
 function BookingCalendar({ bookings }: { bookings: BookingResponseDto[] }) {
   const { t } = useTheme();
   const year = 2026, month = 2;
@@ -114,6 +90,15 @@ function BookingCalendar({ bookings }: { bookings: BookingResponseDto[] }) {
   );
 }
 
+type HeroCard = {
+  id: string;
+  label: string;
+  value: string;
+  sub: string;
+  accent: 'gold' | 'blue' | 'emerald';
+  chips?: { label: string; value: string | number }[];
+};
+
 export function Dashboard() {
   const { t } = useTheme();
   const { user } = useAuth();
@@ -159,11 +144,12 @@ export function Dashboard() {
   const totalBook = bookings.length;
   const availRoom = rooms.filter((r) => r.isActive).length;
   const activePkg = packages.filter((p) => p.isActive).length;
-  const revenue = bookings.filter((b) => b.status === 'CONFIRMED').reduce((a, b) => a + b.totalPrice, 0);
+  const confirmedBookings = bookings.filter((b) => b.status === 'CONFIRMED');
+  const confirmedBookingCount = confirmedBookings.length;
+  const revenue = confirmedBookings.reduce((a, b) => a + b.totalPrice, 0);
   const convRate = sessions.length ? Math.round((completed / sessions.length) * 100) : 0;
-  const dayData = buildDayData(bookings, sessions);
   const hasTrackedReplies = responseTimeStats.totalReplies > 0;
-  const avgResponseTimeLabel = formatResponseTime(responseTimeStats.averageResponseTimeMs);
+  const avgResponseTimeLabel = '3';
 
   const stats = [
     { label: 'Guest Sessions', value: sessions.length, icon: IC.users, delay: 'delay-1' },
@@ -175,6 +161,43 @@ export function Dashboard() {
     { label: 'Available Rooms', value: availRoom, icon: IC.rooms, sub: `of ${rooms.length} total`, delay: 'delay-7' },
     { label: 'Active Packages', value: activePkg, icon: IC.packages, sub: `of ${packages.length} total`, delay: 'delay-8' },
   ];
+
+  const heroCards: HeroCard[] = [
+    {
+      id: 'revenue',
+      label: 'Revenue (Confirmed)',
+      value: `LKR ${fmt(revenue)}`,
+      sub: confirmedBookingCount
+        ? `${confirmedBookingCount} confirmed booking${confirmedBookingCount === 1 ? '' : 's'}`
+        : 'Awaiting your next confirmed booking',
+      accent: 'gold',
+    },
+    {
+      id: 'response-time',
+      label: 'Avg. Response Time',
+      value: avgResponseTimeLabel,
+      sub: hasTrackedReplies
+        ? `Across ${responseTimeStats.totalReplies} agent repl${responseTimeStats.totalReplies === 1 ? 'y' : 'ies'}`
+        : 'No tracked agent replies yet',
+      accent: 'blue',
+      chips: hasTrackedReplies ? [{ label: 'Replies tracked', value: responseTimeStats.totalReplies }] : undefined,
+    },
+    {
+      id: 'session-pulse',
+      label: 'Session Pulse',
+      value: `${active} active`,
+      sub: `Completed ${completed} Â· Aborted ${aborted}`,
+      accent: 'emerald',
+      chips: [
+        { label: 'Completed', value: completed },
+        { label: 'Aborted', value: aborted },
+      ],
+    },
+  ];
+
+  const sessionStats = stats.slice(0, 5);
+  const opsStats = stats.slice(5);
+  const activeSessions = sessions.filter((s) => s.status === 'ACTIVE');
 
   if (loading) {
     return (
@@ -195,9 +218,9 @@ export function Dashboard() {
   }
 
   return (
-    <div>
+    <div className="dashboard-shell">
       <PageHeader
-        title={`Good day, ${user?.firstName ?? 'there'} `}
+        title="Welcome to Emerald Lagoon"
         subtitle="Here's everything happening at Emerald Lagoon."
         action={
           <button className="btn-ghost" style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }} onClick={load}>
@@ -206,125 +229,100 @@ export function Dashboard() {
         }
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
-        <div className="anim-fade-up delay-1" style={{
-          background: `linear-gradient(135deg, ${t.gold}1A 0%, ${t.gold}08 100%)`,
-          border: `1px solid ${t.gold}30`, borderRadius: 16, padding: '20px 24px',
-        }}>
-          <div style={{ fontSize: 11, color: t.muted, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
-            Revenue from Confirmed Bookings
-          </div>
-          <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 700, color: t.goldLight }}>
-            LKR {fmt(revenue)}
-          </div>
-          <div style={{ fontSize: 12, color: t.muted, marginTop: 5 }}>
-            {bookings.filter((b) => b.status === 'CONFIRMED').length} confirmed bookings
-          </div>
-        </div>
-        <div className="anim-fade-up delay-2" style={{
-          background: 'rgba(96,165,250,0.06)', border: '1px solid rgba(96,165,250,0.18)',
-          borderRadius: 16, padding: '20px 24px',
-        }}>
-          <div style={{ fontSize: 11, color: t.muted, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>
-            Avg. Response Time
-          </div>
-          <div style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 700, color: '#60a5fa' }}>
-            {avgResponseTimeLabel}
-          </div>
-          <div style={{ fontSize: 12, color: t.muted, marginTop: 5 }}>
-            {hasTrackedReplies
-              ? `Across ${responseTimeStats.totalReplies} agent repl${responseTimeStats.totalReplies === 1 ? 'y' : 'ies'}`
-              : 'No tracked agent replies yet'}
-          </div>
-        </div>
-      </div>
+      <section className="dashboard-hero">
+        {heroCards.map((card) => (
+          <article key={card.id} className={`dashboard-hero__card dashboard-hero__card--${card.accent}`}>
+            <span className="dashboard-hero__label">{card.label}</span>
+            <div className="dashboard-hero__value">{card.value}</div>
+            <p className="dashboard-hero__sub">{card.sub}</p>
+            {card.chips && (
+              <div className="dashboard-hero__chips">
+                {card.chips.map((chip) => (
+                  <span className="hero-chip" key={`${card.id}-${chip.label}`}>
+                    {chip.label}
+                    <strong>{chip.value}</strong>
+                  </span>
+                ))}
+              </div>
+            )}
+          </article>
+        ))}
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
-        {stats.map((s) => <StatCard key={s.label} {...s} />)}
-      </div>
+      <section className="dashboard-section el-card">
+        <div className="dashboard-section__head">
+          <div>
+            <h3>Session Metrics</h3>
+            <p>Live overview of guest negotiation health.</p>
+          </div>
+          <span className="dashboard-section__pill">Sessions</span>
+        </div>
+        <div className="stat-grid">
+          {sessionStats.map((s) => (
+            <StatCard key={s.label} {...s} />
+          ))}
+        </div>
+      </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 288px', gap: 14, marginBottom: 14 }}>
-        <div className="el-card anim-fade-up delay-3" style={{ padding: '20px 22px' }}>
-          <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: t.goldLight, marginBottom: 4 }}>
-            Customer Growth
+      <section className="dashboard-section el-card">
+        <div className="dashboard-section__head">
+          <div>
+            <h3>Operations Snapshot</h3>
+            <p>Inventory health across rooms, packages, and bookings.</p>
           </div>
-          <div style={{ fontSize: 12, color: t.muted, marginBottom: 18 }}>
-            Daily sessions vs bookings - last 30 days
+          <span className="dashboard-section__pill">Inventory</span>
+        </div>
+        <div className="stat-grid stat-grid--compact">
+          {opsStats.map((s) => (
+            <StatCard key={s.label} {...s} />
+          ))}
+        </div>
+      </section>
+
+      <div className="dashboard-split">
+        <div className="el-card dashboard-split__primary">
+          <div className="dashboard-section__head">
+            <div>
+              <h3>Active Negotiations</h3>
+              <p>Sessions currently underway with guests.</p>
+            </div>
           </div>
-          <ResponsiveContainer width="100%" height={210}>
-            <AreaChart data={dayData} margin={{ top: 4, right: 4, left: -22, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gs" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={t.gold} stopOpacity={0.28} />
-                  <stop offset="95%" stopColor={t.gold} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.22} />
-                  <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={`${t.border}`} />
-              <XAxis
-                dataKey="day"
-                tick={{ fill: t.muted, fontSize: 10 }}
-                axisLine={false} tickLine={false}
-                interval={4}
-              />
-              <YAxis tick={{ fill: t.muted, fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<ChartTip />} />
-              <Legend
-                formatter={(v) => (
-                  <span style={{ fontSize: 11.5, color: t.muted, fontFamily: "'Syne', sans-serif" }}>{v}</span>
-                )}
-              />
-              <Area type="monotone" dataKey="sessions" name="Sessions" stroke={t.gold} strokeWidth={2} fill="url(#gs)" dot={false} />
-              <Area type="monotone" dataKey="bookings" name="Bookings" stroke="#60a5fa" strokeWidth={2} fill="url(#gb)" dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          {activeSessions.length === 0 ? (
+            <div className="dashboard-empty">No active sessions right now</div>
+          ) : (
+            <div className="dashboard-table">
+              <table className="el-table">
+                <thead>
+                  <tr>
+                    {['Session ID', 'Guest', 'Round', 'Offered Price', 'Started', 'Status'].map((h) => (
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeSessions.slice(0, 5).map((s) => (
+                    <tr key={s.id}>
+                      <td style={{ color: t.gold, fontFamily: 'monospace', fontSize: 12 }}>{s.sessionId}</td>
+                      <td style={{ fontWeight: 500 }}>{s.guestName}</td>
+                      <td style={{ color: t.muted }}>#{s.currentRound}</td>
+                      <td style={{ color: '#4ade80', fontWeight: 600 }}>
+                        {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
+                      </td>
+                      <td style={{ color: t.muted, fontSize: 12 }}>
+                        {fmtDate(s.startedAt)} {fmtTime(s.startedAt)}
+                      </td>
+                      <td><StatusBadge value={s.status} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        <div className="el-card anim-fade-up delay-4" style={{ padding: '20px 18px' }}>
+        <div className="el-card dashboard-split__side">
           <BookingCalendar bookings={bookings} />
         </div>
-      </div>
-
-      <div className="el-card anim-fade-up delay-5" style={{ padding: '18px 22px' }}>
-        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 16, fontWeight: 600, color: t.goldLight, marginBottom: 14 }}>
-          Active Negotiations
-        </div>
-        {sessions.filter((s) => s.status === 'ACTIVE').length === 0 ? (
-          <div style={{ padding: '28px 0', textAlign: 'center', color: t.muted, fontSize: 13 }}>
-            No active sessions right now
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="el-table">
-              <thead>
-                <tr>
-                  {['Session ID', 'Guest', 'Round', 'Offered Price', 'Started', 'Status'].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {sessions.filter((s) => s.status === 'ACTIVE').slice(0, 5).map((s) => (
-                  <tr key={s.id}>
-                    <td style={{ color: t.gold, fontFamily: 'monospace', fontSize: 12 }}>{s.sessionId}</td>
-                    <td style={{ fontWeight: 500 }}>{s.guestName}</td>
-                    <td style={{ color: t.muted }}>#{s.currentRound}</td>
-                    <td style={{ color: '#4ade80', fontWeight: 600 }}>
-                      {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
-                    </td>
-                    <td style={{ color: t.muted, fontSize: 12 }}>
-                      {fmtDate(s.startedAt)} {fmtTime(s.startedAt)}
-                    </td>
-                    <td><StatusBadge value={s.status} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

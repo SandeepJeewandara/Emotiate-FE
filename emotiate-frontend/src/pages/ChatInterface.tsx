@@ -4,7 +4,6 @@ import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import logoIcon from "../assets/logos/logo-icon.png";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type SenderType = "GUEST" | "AGENT" | "SYSTEM";
 type MessageType = "TEXT" | "PACKAGE_CARD" | "BOOKING_CARD" | "OPTION_BUTTONS" | "SYSTEM_NOTICE";
@@ -80,7 +79,6 @@ interface Props {
   onMinimize: () => void;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const buildWelcomeMessage = (name: string) =>
   `Welcome to Emerald Lagoon, ${name}. How can I help you today?`;
@@ -105,7 +103,6 @@ const calendarMonthFormatter = new Intl.DateTimeFormat("en-US", {
 });
 const calendarWeekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizeMetadata(metadata: unknown): string {
   if (typeof metadata === "string") return metadata.trim();
@@ -551,15 +548,12 @@ function StayDatePicker({
   );
 }
 
-/** Stable dedup key for a server message. Prefer backend-provided IDs. */
 function serverMsgKey(msg: ServerMessage): string {
   const id = msg.id ?? msg.messageId;
   if (id != null) return `id:${id}`;
-  // fall back to content signature (no timestamps — they differ between WS and REST)
   return `sig:${msg.senderType}:${msg.messageType ?? "TEXT"}:${(msg.content ?? "").trim().toLowerCase()}:${normalizeMetadata(msg.metadata)}`;
 }
 
-/** Pull the message array out of any response shape the backend might send. */
 function extractMessages(payload: unknown): ServerMessage[] {
   if (!payload) return [];
   if (Array.isArray(payload)) return payload as ServerMessage[];
@@ -567,22 +561,18 @@ function extractMessages(payload: unknown): ServerMessage[] {
   if (typeof payload === "object" && payload !== null) {
     const obj = payload as Record<string, unknown>;
 
-    // Single message object
     if (typeof obj.senderType === "string" && typeof obj.content === "string") {
       return [obj as unknown as ServerMessage];
     }
 
-    // { data: [...] }
     if (Array.isArray(obj.data)) return obj.data as ServerMessage[];
 
-    // { data: { messages: [...] } }
     if (typeof obj.data === "object" && obj.data !== null) {
       const inner = obj.data as Record<string, unknown>;
       if (typeof inner.senderType === "string") return [inner as unknown as ServerMessage];
       if (Array.isArray(inner.messages)) return inner.messages as ServerMessage[];
     }
 
-    // { messages: [...] }
     if (Array.isArray(obj.messages)) return obj.messages as ServerMessage[];
   }
 
@@ -591,7 +581,6 @@ function extractMessages(payload: unknown): ServerMessage[] {
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ChatInterface({ onClose, onMinimize }: Props) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
@@ -619,10 +608,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyReceivedRef = useRef(false);
 
-  /**
-   * Single source of truth for deduplication.
-   * Lives outside React state so mutations are synchronous and never stale.
-   */
   const shownKeysRef = useRef<Set<string>>(new Set());
 
   const apiBase = import.meta.env.VITE_CHAT_API_BASE_URL ?? "http://localhost:8080";
@@ -679,12 +664,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     void sendChatMessage(stayDatesMessage);
   }
 
-  // ── Scroll to bottom whenever messages or typing indicator change ──────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // ── Focus input when gate closes ──────────────────────────────────────────
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       if (gateOpen) {
@@ -700,7 +683,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     return () => window.cancelAnimationFrame(frame);
   }, [gateOpen, isSessionComplete, isSending]);
 
-  // ── Cleanup on unmount ────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       clearResponseTimeout();
@@ -709,7 +691,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     };
   }, []);
 
-  // ── Timeout helpers ───────────────────────────────────────────────────────
   function clearResponseTimeout() {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -721,24 +702,17 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     clearResponseTimeout();
     timeoutRef.current = setTimeout(() => {
       setIsTyping(false);
-      setNotice("Response is taking longer than expected…");
+      setNotice("Response is taking longer than expectedâ€¦");
       timeoutRef.current = null;
     }, RESPONSE_TIMEOUT_MS);
   }
 
-  // ── Message helpers ───────────────────────────────────────────────────────
 
-  /** Append a single hardcoded UI message (no dedup — caller guarantees uniqueness). */
   function appendHardcoded(senderType: SenderType, content: string) {
     const key = `hardcoded:${senderType}:${Date.now()}`;
     setMessages((prev) => [...prev, { key, senderType, content }]);
   }
 
-  /**
-   * Attempt to add server messages to the UI.
-   * Only adds messages whose dedup key has NOT been seen before.
-   * Returns the number of new messages added.
-   */
   function ingestServerMessages(raw: ServerMessage[]): number {
     const fresh: UiMessage[] = [];
     let completed = false;
@@ -751,8 +725,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         : undefined;
       if (!content && packageOptions.length === 0 && !bookingConfirmation) continue;
 
-      // Guest messages are rendered optimistically on send.
-      // Ignore backend echoes (REST/WS/history) to avoid duplicate user bubbles.
       if (msg.senderType === "GUEST") continue;
 
       const key = serverMsgKey(msg);
@@ -785,7 +757,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     return fresh.length;
   }
 
-  // ── API calls ─────────────────────────────────────────────────────────────
 
   async function apiStartSession(name: string): Promise<string> {
     const res = await fetch(`${apiBase}/api/chat/session/start`, {
@@ -820,7 +791,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     return extractMessages(await res.json());
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
 
   function subscribeToSession(client: Client, sid: string) {
     subscriptionRef.current?.unsubscribe();
@@ -865,7 +835,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         },
         onDisconnect: () => {
           subscribedSessionRef.current = "";
-          setNotice("Connection lost. Reconnecting…");
+          setNotice("Connection lost. Reconnectingâ€¦");
         },
         onStompError: (frame) => {
           console.error("STOMP error:", frame);
@@ -878,7 +848,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     });
   }
 
-  // ── Poll history until the agent reply appears ────────────────────────────
   async function pollForReply(sid: string) {
     const delays = [500, 1200, 2200, 3500];
 
@@ -899,12 +868,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           return;
         }
       } catch {
-        // keep trying
       }
     }
   }
 
-  // ── Session start ─────────────────────────────────────────────────────────
   async function handleStartSession(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const name = nameInput.trim();
@@ -918,10 +885,8 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       const sid = await apiStartSession(name);
       setSessionId(sid);
 
-      // Connect WS first so we don't miss any early agent push
       await connectWebSocket(sid);
 
-      // Show hardcoded welcome — agent sends nothing on session start
       appendHardcoded("AGENT", buildWelcomeMessage(name));
 
       setGateOpen(false);
@@ -934,7 +899,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     }
   }
 
-  // ── Send message ──────────────────────────────────────────────────────────
   async function sendChatMessage(rawText: string) {
     const text = rawText.trim();
     if (!text || isSending || isSessionComplete) return;
@@ -945,7 +909,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     setNotice("");
     replyReceivedRef.current = false;
 
-    // Add guest bubble immediately
     const guestKey = `guest:${Date.now()}`;
     setMessages((prev) => [...prev, { key: guestKey, senderType: "GUEST", content: text }]);
 
@@ -954,7 +917,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     try {
       let sid = sessionId;
 
-      // Re-create session if somehow lost
       if (!sid) {
         sid = await apiStartSession(guestName);
         setSessionId(sid);
@@ -963,7 +925,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         await connectWebSocket(sid);
       }
 
-      // Send the message; some backends echo the reply in the POST response
       const immediate = await apiSendMessage(sid, text);
       if (immediate.length > 0) {
         const added = ingestServerMessages(immediate);
@@ -972,11 +933,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           clearResponseTimeout();
           setIsTyping(false);
           setNotice("");
-          return; // WebSocket will also fire, but dedup will block it
+          return;
         }
       }
 
-      // Otherwise wait for WebSocket push; fall back to history polling
       await pollForReply(sid);
     } catch (err) {
       console.error("Send error:", err);
@@ -988,7 +948,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   async function handleSend(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     await sendChatMessage(userInput);
@@ -1043,7 +1002,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           position: relative;
         }
 
-        /* ── Header ── */
         .ci-header {
           display: flex;
           align-items: center;
@@ -1119,7 +1077,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         .ci-header__expand:hover { background: #f9e9c3; color: #5c4519; }
         .ci-header__expand svg { width: 14px; height: 14px; }
 
-        /* ── Messages ── */
         .ci-messages {
           flex: 1; min-height: 0;
           overflow-y: auto; overflow-x: hidden;
@@ -1129,7 +1086,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         }
         .ci-messages::-webkit-scrollbar { width: 0; }
 
-        /* ── Rows ── */
         .ci-row {
           display: flex; align-items: flex-end; gap: 8px;
           animation: ci-fadeup 0.28s ease forwards;
@@ -1149,7 +1105,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         .ci-row--guest + .ci-row--agent,
         .ci-row--agent  + .ci-row--guest { margin-top: 12px; }
 
-        /* ── Avatar ── */
         .ci-avatar {
           width: 13px; height: 13px; border-radius: 50%;
           background: linear-gradient(135deg,#d7b05a,#bc8b2f);
@@ -1160,7 +1115,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         .ci-avatar img { width: 72%; height: 72%; object-fit: contain; }
         .ci-row[data-cont="1"] .ci-avatar { visibility: hidden; }
 
-        /* ── Bubbles ── */
         .ci-bubble {
           max-width: 100%; padding: 11px 15px;
           font-size: 13.5px; line-height: 1.55; word-break: break-word;
@@ -1636,7 +1590,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           background: linear-gradient(180deg, #f0d28a 0%, #d0a34a 100%);
         }
 
-        /* ── Typing ── */
         .ci-booking-card {
           overflow: hidden;
           border-radius: 18px;
@@ -1816,7 +1769,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           30% { transform:translateY(-5px); opacity:1; }
         }
 
-        /* ── Notice ── */
         .ci-notice {
           font-size: 11px; color: #815f1a; text-align: center;
           padding: 6px 16px;
@@ -1825,7 +1777,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
           flex-shrink: 0;
         }
 
-        /* ── Composer ── */
         .ci-composer {
           flex-shrink: 0; padding: 12px 14px 14px;
           background: var(--ci-surface);
@@ -1887,7 +1838,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         }
         .ci-send-btn svg { width: 15px; height: 15px; }
 
-        /* ── Gate overlay ── */
         .ci-content { height: 100%; display: flex; flex-direction: column; transition: filter 0.25s; }
         .ci-content--blur { filter: blur(4px); pointer-events: none; user-select: none; }
 
@@ -1952,10 +1902,8 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       <div className={`ci-root${isExpanded ? " ci-root--expanded" : ""}`}>
         <div className="ci-shell">
 
-          {/* Blurred background when gate is open */}
           <div className={`ci-content${gateOpen ? " ci-content--blur" : ""}`}>
 
-            {/* Header */}
             <header className="ci-header">
               <div className="ci-header__brand">
                 <div className="ci-header__avatar">
@@ -1965,7 +1913,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   <span className="ci-header__name">Emerald Chat</span>
                   <span className="ci-header__status">
                     <span className="ci-header__dot" />
-                    Online · Booking Agent
+                    Online Â· Booking Agent
                   </span>
                 </div>
               </div>
@@ -1993,7 +1941,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   onClick={onMinimize}
                   aria-label="Minimize chat"
                 >
-                  {/* minus / dash icon */}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <path d="M5 12h14" />
                   </svg>
@@ -2011,7 +1958,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
               </div>
             </header>
 
-            {/* Message list */}
             <div className="ci-messages">
               {messages.map((msg, idx) => {
                 const prev = messages[idx - 1];
@@ -2033,7 +1979,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   );
                 }
 
-                // AGENT
                 const selectedPackageId = selectedPackages[msg.key];
                 const activePackageIndex = activePackageIndexes[msg.key] ?? 0;
                 const hasPackageCards =
@@ -2259,14 +2204,11 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                 </div>
               )}
 
-              {/* Scroll anchor */}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Network notice */}
             {notice && <p className="ci-notice">{notice}</p>}
 
-            {/* Composer */}
             <form className={`ci-composer${isSessionComplete ? " ci-composer--complete" : ""}`} onSubmit={handleSend}>
               {isSessionComplete && (
                 <div className="ci-composer__done">
@@ -2278,7 +2220,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   ref={inputRef}
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
-                  placeholder="Type your message…"
+                  placeholder="Type your messageâ€¦"
                   className="ci-composer__input"
                   autoComplete="off"
                   aria-label="Type your message"
@@ -2298,7 +2240,6 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
             </form>
           </div>
 
-          {/* Name gate overlay */}
           {gateOpen && (
             <div className="ci-gate">
               <form className="ci-gate__panel" onSubmit={handleStartSession}>
@@ -2318,7 +2259,7 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
                   className="ci-gate__btn"
                   disabled={isStarting || !nameInput.trim()}
                 >
-                  {isStarting ? "Starting…" : "Start Chat"}
+                  {isStarting ? "Startingâ€¦" : "Start Chat"}
                 </button>
               </form>
             </div>

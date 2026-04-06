@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { chatApi } from '../api';
 import { useTheme } from '../context/ThemeContext';
 import { useNotif } from '../hooks';
@@ -14,49 +14,58 @@ export function SessionManagement() {
   const { t } = useTheme();
   const notif = useNotif();
 
-  const [sessions,  setSessions]  = useState<NegotiationSessionResponseDto[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [search,    setSearch]    = useState('');
-  const [filter,    setFilter]    = useState<StatusFilter>('ALL');
-  const [confirm,   setConfirm]   = useState<{ type: 'abort' | 'delete'; id: number; sessionId: string } | null>(null);
-  const [acting,    setActing]    = useState<number | null>(null);
+  const [sessions, setSessions] = useState<NegotiationSessionResponseDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('ALL');
+  const [confirm, setConfirm] = useState<{ type: 'abort' | 'delete'; id: number; sessionId: string } | null>(null);
+  const [acting, setActing] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setSessions(await chatApi.getAllSessions()); }
-    catch (e: unknown) { notif.push(e instanceof Error ? e.message : 'Failed to load sessions', 'error'); }
-    finally { setLoading(false); }
-  }, []); // eslint-disable-line
+    try {
+      setSessions(await chatApi.getAllSessions());
+    } catch (e: unknown) {
+      notif.push(e instanceof Error ? e.message : 'Failed to load sessions', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [notif.push]);
 
   useEffect(() => { load(); }, [load]);
 
   const filtered = sessions.filter((s) => {
     const q = search.toLowerCase();
-    const ms = s.guestName.toLowerCase().includes(q) || s.sessionId.toLowerCase().includes(q);
-    const mf = filter === 'ALL' || s.status === filter;
-    return ms && mf;
+    const matchesSearch = s.guestName.toLowerCase().includes(q) || s.sessionId.toLowerCase().includes(q);
+    const matchesFilter = filter === 'ALL' || s.status === filter;
+    return matchesSearch && matchesFilter;
   });
 
   const abort = async (id: number, sessionId: string) => {
     setActing(id);
     try {
       const upd = await chatApi.abortSession(sessionId);
-      setSessions((p) => p.map((s) => s.id === id ? upd : s));
+      setSessions((p) => p.map((s) => (s.id === id ? upd : s)));
       notif.push('Session aborted', 'info');
     } catch (e: unknown) {
       notif.push(e instanceof Error ? e.message : 'Abort failed', 'error');
-    } finally { setActing(null); setConfirm(null); }
+    } finally {
+      setActing(null);
+      setConfirm(null);
+    }
   };
 
   const complete = async (id: number, sessionId: string) => {
     setActing(id);
     try {
       const upd = await chatApi.completeSession(sessionId);
-      setSessions((p) => p.map((s) => s.id === id ? upd : s));
+      setSessions((p) => p.map((s) => (s.id === id ? upd : s)));
       notif.push('Session completed');
     } catch (e: unknown) {
       notif.push(e instanceof Error ? e.message : 'Complete failed', 'error');
-    } finally { setActing(null); }
+    } finally {
+      setActing(null);
+    }
   };
 
   const deleteSession = async (id: number) => {
@@ -71,13 +80,11 @@ export function SessionManagement() {
   };
 
   const counts = {
-    ACTIVE:    sessions.filter((s) => s.status === 'ACTIVE').length,
+    ACTIVE: sessions.filter((s) => s.status === 'ACTIVE').length,
     COMPLETED: sessions.filter((s) => s.status === 'COMPLETED').length,
-    ABORTED:   sessions.filter((s) => s.status === 'ABORTED').length,
+    ABORTED: sessions.filter((s) => s.status === 'ABORTED').length,
   };
-  const convRate = sessions.length
-    ? Math.round((counts.COMPLETED / sessions.length) * 100)
-    : 0;
+  const convRate = sessions.length ? Math.round((counts.COMPLETED / sessions.length) * 100) : 0;
 
   return (
     <>
@@ -85,7 +92,8 @@ export function SessionManagement() {
 
       <PageHeader
         title="Chat Sessions"
-        subtitle="Monitor and manage guest negotiation sessions."
+        subtitle="Monitor live negotiations, completed conversations, and guest drop-offs from one operating view."
+        eyebrow="Negotiation Desk"
         action={
           <button className="btn-ghost" style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }} onClick={load}>
             <Ico d={IC.refresh} size={13} /> Refresh
@@ -93,29 +101,36 @@ export function SessionManagement() {
         }
       />
 
-      {/* Summary stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-        <StatCard label="Active"    value={counts.ACTIVE}    icon={IC.chat}     color="#60a5fa" delay="delay-1" onClick={() => setFilter('ACTIVE')} />
-        <StatCard label="Completed" value={counts.COMPLETED} icon={IC.check}    color="#4ade80" delay="delay-2" onClick={() => setFilter('COMPLETED')} />
-        <StatCard label="Aborted"   value={counts.ABORTED}   icon={IC.ban}      color="#f87171" delay="delay-3" onClick={() => setFilter('ABORTED')} />
-        <StatCard label="Conv. Rate" value={`${convRate}%`}  icon={IC.arrowRight} color="var(--gold)" delay="delay-4" />
+      <div className="kpi-grid">
+        <StatCard label="Active" value={counts.ACTIVE} icon={IC.chat} color="#60a5fa" delay="delay-1" onClick={() => setFilter('ACTIVE')} />
+        <StatCard label="Completed" value={counts.COMPLETED} icon={IC.check} color="#4ade80" delay="delay-2" onClick={() => setFilter('COMPLETED')} />
+        <StatCard label="Aborted" value={counts.ABORTED} icon={IC.ban} color="#f87171" delay="delay-3" onClick={() => setFilter('ABORTED')} />
+        <StatCard label="Conv. Rate" value={`${convRate}%`} icon={IC.arrowRight} color="var(--gold)" delay="delay-4" />
       </div>
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <div style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: t.muted, pointerEvents: 'none' }}>
+      <div className="page-toolbar">
+        <div className="page-toolbar__search">
+          <div className="page-toolbar__search-icon">
             <Ico d={IC.search} size={14} />
           </div>
-          <input className="el-search" placeholder="Search guest name, session ID…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
+          <input className="el-search" placeholder="Search guest name, session ID..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%' }} />
         </div>
-        {(['ALL', 'ACTIVE', 'COMPLETED', 'ABORTED'] as StatusFilter[]).map((f) => (
-          <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
-        ))}
+        <div className="page-toolbar__filters">
+          {(['ALL', 'ACTIVE', 'COMPLETED', 'ABORTED'] as StatusFilter[]).map((f) => (
+            <button key={f} className={`tab-btn ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>{f}</button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="el-card" style={{ overflow: 'hidden' }}>
+      <section className="el-card content-card">
+        <div className="content-card__head">
+          <div>
+            <h3>Session Queue</h3>
+            <p>Spot session momentum quickly with a denser layout for price, timing, and current state.</p>
+          </div>
+          <span className="content-card__pill">{filtered.length} sessions</span>
+        </div>
+
         <div style={{ overflowX: 'auto' }}>
           <table className="el-table">
             <thead>
@@ -133,7 +148,7 @@ export function SessionManagement() {
                     <td style={{ fontWeight: 500 }}>{s.guestName}</td>
                     <td style={{ color: t.muted }}>#{s.currentRound}</td>
                     <td style={{ color: '#4ade80', fontWeight: 600 }}>
-                      {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '—'}
+                      {s.offeredPrice ? `LKR ${fmt(s.offeredPrice)}` : '-'}
                     </td>
                     <td style={{ color: t.muted, fontSize: 12, whiteSpace: 'nowrap' }}>
                       {fmtDate(s.startedAt)}<br />{fmtTime(s.startedAt)}
@@ -177,9 +192,8 @@ export function SessionManagement() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      {/* Confirm dialogs */}
       {confirm?.type === 'abort' && (
         <Confirm
           msg={`Abort session ${confirm.sessionId}? The guest will be notified.`}
