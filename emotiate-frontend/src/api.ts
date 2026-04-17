@@ -10,7 +10,15 @@ import type {
   ResponseTimeStatsDto,
 } from './types';
 
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+function normalizeBaseUrl(value?: string): string {
+  return value ? value.replace(/\/+$/, '') : '';
+}
+
+// Production deployments should call the Netlify site origin so /api rewrites
+// can proxy requests to the backend without the browser hitting CORS.
+export const BASE_URL = import.meta.env.PROD
+  ? ''
+  : normalizeBaseUrl(import.meta.env.VITE_API_URL) || '';
 
 export function getToken(): string | null  { return localStorage.getItem('el_token'); }
 export function setToken(t: string): void  { localStorage.setItem('el_token', t); }

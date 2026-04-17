@@ -155,12 +155,11 @@ body {
 }
 
 .hero-content--chat-active {
-  display: grid;
-  grid-template-columns: minmax(280px, 400px) 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: calc(100svh - 90px);
   padding-top: 96px;
-  align-items: center;
-  gap: clamp(1rem, 4vw, 3rem);
+  align-items: flex-start;
   text-align: left;
 }
 
@@ -521,10 +520,10 @@ body {
 
 @media (max-width: 900px) {
   .hero-content--chat-active {
-    grid-template-columns: 1fr;
     min-height: calc(100svh - 84px);
     padding-top: 84px;
     text-align: center;
+    align-items: center;
   }
 
   .hero-intro--chat-active {

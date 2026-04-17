@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from "react";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import logoIcon from "../assets/logos/logo-icon.png";
+import { BASE_URL } from "../api";
 
 
 type SenderType = "GUEST" | "AGENT" | "SYSTEM";
@@ -611,6 +612,10 @@ function extractMessages(payload: unknown): ServerMessage[] {
 
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+function buildWsEndpoint(baseUrl: string): string {
+  return baseUrl ? `${baseUrl}/ws/negotiation` : "/ws/negotiation";
+}
+
 
 export default function ChatInterface({ onClose, onMinimize }: Props) {
   const [messages, setMessages] = useState<UiMessage[]>([]);
@@ -640,7 +645,9 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
 
   const shownKeysRef = useRef<Set<string>>(new Set());
 
-  const apiBase = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+  const apiBase = BASE_URL;
+  const wsEndpoint = buildWsEndpoint(apiBase);
+  const wsUnavailableRef = useRef(false);
 
   function focusComposerInput() {
     const input = inputRef.current;
@@ -877,9 +884,11 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       }
 
       const client = new Client({
-        webSocketFactory: () => new SockJS(`${apiBase}/ws/negotiation`),
+        webSocketFactory: () => new SockJS(wsEndpoint),
+        connectionTimeout: 7000,
         reconnectDelay: 3000,
         onConnect: () => {
+          wsUnavailableRef.current = false;
           setNotice("");
           subscribeToSession(client, sid);
           resolve();
@@ -887,6 +896,10 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
         onDisconnect: () => {
           subscribedSessionRef.current = "";
           setNotice("Connection lost. Reconnecting...");
+        },
+        onWebSocketError: (event) => {
+          console.error("WebSocket transport error:", event);
+          reject(new Error("WebSocket transport failed"));
         },
         onStompError: (frame) => {
           console.error("STOMP error:", frame);
@@ -897,6 +910,27 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       stompRef.current = client;
       client.activate();
     });
+  }
+
+  async function ensureWebSocket(sid: string) {
+    if (wsUnavailableRef.current) return;
+
+    try {
+      await connectWebSocket(sid);
+    } catch (err) {
+      wsUnavailableRef.current = true;
+      subscribedSessionRef.current = "";
+      subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
+
+      if (stompRef.current) {
+        void stompRef.current.deactivate();
+        stompRef.current = null;
+      }
+
+      console.error("WebSocket unavailable, falling back to polling:", err);
+      setNotice("Live updates are limited in this browser. Chat is using fallback mode.");
+    }
   }
 
   async function pollForReply(sid: string) {
@@ -936,12 +970,19 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       const sid = await apiStartSession(name);
       setSessionId(sid);
 
-      await connectWebSocket(sid);
+      void ensureWebSocket(sid);
 
       appendHardcoded("AGENT", buildWelcomeMessage(name));
 
       setGateOpen(false);
       setNameInput("");
+
+      // Fetch history after a short delay to pick up any messages the backend
+      // sends immediately on session creation (missed while WS was still connecting).
+      void (async () => {
+        await wait(1200);
+        try { ingestServerMessages(await apiFetchHistory(sid)); } catch {}
+      })();
     } catch (err) {
       console.error("Session start error:", err);
       setNotice("Unable to start chat. Please try again.");
@@ -971,9 +1012,9 @@ export default function ChatInterface({ onClose, onMinimize }: Props) {
       if (!sid) {
         sid = await apiStartSession(guestName);
         setSessionId(sid);
-        await connectWebSocket(sid);
-      } else if (!stompRef.current?.connected) {
-        await connectWebSocket(sid);
+        await ensureWebSocket(sid);
+      } else if (!stompRef.current && !wsUnavailableRef.current) { 
+        await ensureWebSocket(sid);
       }
 
       const immediate = await apiSendMessage(sid, text);
